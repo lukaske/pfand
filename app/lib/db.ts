@@ -23,6 +23,8 @@ import {
   type ActivityBucket,
   type AgentNetwork,
   type TaskScore,
+  type Payment,
+  type Evidence,
 } from "@pfand/shared";
 import { getScoredData, getScoredAgents, allFeedback } from "@/lib/scored";
 import {
@@ -81,6 +83,9 @@ interface AgentDbRow {
   scores_by_task: TaskScore[] | null;
   distinct_clients: number | null;
   trustrank_updated_at: string | null;
+  evidence: Evidence | null;
+  distrust_flag: boolean | null;
+  tags: { tag: string; count: number }[] | null;
   created_at_block: number | null;
   created_at: string | null;
 }
@@ -126,8 +131,13 @@ function rowToAgent(r: AgentDbRow): Agent {
       trustRank: r.trustrank ?? null,
       trustRankRaw: r.trustrank_raw ?? null,
       scoresByTask: r.scores_by_task ?? [],
-      distinctClients: r.distinct_clients ?? 0,
-      topTask: r.scores_by_task?.[0]?.tag ?? null,
+      // v2 enrichment: evidence / distrustFlag / tags from the trust engine.
+      evidence: r.evidence ?? undefined,
+      distrustFlag: r.distrust_flag ?? false,
+      tags: r.tags ?? [],
+      // back-compat: distinctClients tracks distinct review count.
+      distinctClients: r.evidence?.distinctReviews ?? 0,
+      topTask: r.tags?.[0]?.tag ?? r.scores_by_task?.[0]?.tag ?? null,
     },
     createdAtBlock: r.created_at_block,
     createdAt: r.created_at,
@@ -158,11 +168,36 @@ const AGENT_COLS =
   "x402_support,service_endpoint,pay_to_wallet,ens_name,payable,price_usdc," +
   "reputation_count,reputation_score,reputation_score_normalized," +
   "trustrank,trustrank_raw,scores_by_task,distinct_clients,trustrank_updated_at," +
+  "evidence,distrust_flag,tags," +
   "created_at_block,created_at";
 
 const FEEDBACK_COLS =
   "network,agent_id,client,feedback_index,value,value_decimals,score," +
   "tag1,tag2,feedback_uri,is_revoked,tx_hash,block_number,timestamp";
+
+const PAYMENT_COLS =
+  "network,from_addr,to_agent_id,amount_usdc,ts,pfand_verified,tx_hash";
+
+interface PaymentDbRow {
+  network: string;
+  from_addr: string;
+  to_agent_id: string;
+  amount_usdc: number | string;
+  ts: string | null;
+  pfand_verified: boolean | null;
+  tx_hash: string | null;
+}
+
+function rowToPayment(r: PaymentDbRow): Payment {
+  return {
+    from: String(r.from_addr ?? "").toLowerCase(),
+    toAgentId: String(r.to_agent_id),
+    network: r.network as AgentNetwork,
+    amountUsdc: Number(r.amount_usdc ?? 0),
+    timestamp: r.ts,
+    pfandVerified: Boolean(r.pfand_verified),
+  };
+}
 
 /* -------------------------- Supabase reads ------------------------------ */
 
@@ -220,6 +255,34 @@ export async function getAllFeedback(): Promise<FeedbackEntry[]> {
   } catch (err) {
     console.error("[db] getAllFeedback fell back to seed:", err);
     return allFeedback();
+  }
+}
+
+/**
+ * All payment flows (for building the payment edges of the trust graph).
+ * The seed corpus carries no on-chain payments, so the no-creds / error path
+ * returns [] (reviews still drive the graph).
+ */
+export async function getAllPayments(): Promise<Payment[]> {
+  if (!hasSupabase()) return [];
+  try {
+    const client = await supa();
+    const out: PaymentDbRow[] = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await client
+        .from("payments")
+        .select(PAYMENT_COLS)
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(`payments read: ${error.message}`);
+      const rows = (data ?? []) as unknown as PaymentDbRow[];
+      out.push(...rows);
+      if (rows.length < PAGE) break;
+    }
+    return out.map(rowToPayment);
+  } catch (err) {
+    console.error("[db] getAllPayments fell back to empty:", err);
+    return [];
   }
 }
 

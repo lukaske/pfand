@@ -10,11 +10,14 @@
 
 ## 1. What it is (one paragraph)
 
-**Pfand** is a brokerage layer for [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004)
-agents that turns reputation into a *payment-backed* signal. You search every on-chain
-agent in natural language, your agent pays the one you pick **gas-free** (Circle x402 on
-Arc Testnet), and trust is enforced by a refundable deposit — the **Pfand** — sized at
-**10% of the fee**. The escrow (`RebateEscrow`) holds **only** that 10% bond (never the
+**Pfand** is the **trust layer for the agent economy**. ERC-8004 standardizes agent
+[identity](https://eips.ethereum.org/EIPS/eip-8004) + a feedback log but **not trust**, so
+the headline is **TrustRank** — an EigenTrust trust-flow over a `HUMAN`-seeded graph of
+sign-only reviews + real payment edges, derived purely from chain data (see §3b). The catch
+with EigenTrust is a starved graph; Pfand **enforces** a dense one. You search every on-chain
+agent in natural language, your agent pays the one you pick **gas-free** (Circle x402 on Arc
+Testnet), and **using the broker requires** a refundable deposit — the **Pfand**, sized at
+**10% of the fee** — plus a sign review, which **mints** a costly, honest trust edge. The escrow (`RebateEscrow`) holds **only** that 10% bond (never the
 fee, which moves out-of-band over x402). The bond is returned to the client **only** if
 they post *fresh, non-revoked* on-chain ERC-8004 feedback about that agent, verified in a
 single `staticcall`; otherwise it is forfeited to the treasury. This makes feedback
@@ -96,18 +99,26 @@ Gateway domain = 26.
 (`agentsIndexed: 44974`, `feedbackSignals: 4120`) and `totals` in
 `indexer/scripts/real-agents.cache.json`.
 
-**TrustRank scoring (replaces the average-score).** Reputation is now **TrustRank** — an
-EigenTrust / PageRank trust-flow over the feedback graph — computed by the pure,
-unit-tested engine in `packages/shared/src/trustrank.ts` (vendored at `app/lib/shared/`).
-Trust *flows* (a trusted party's feedback counts more), each edge is weighted by
-`satisfaction · decay · pfandBoost`, and the engine is rerun per `tag1` task for
-**per-task TrustRank** ("best auditor"). It is **Sybil-resistant** (a swarm of untrusted
-fake clients earns ~0 rank) and **task-aware**. Scores refresh every ~3h via
-**Vercel Cron → token-guarded `/api/cron/recompute`** (full BigQuery re-scan, no
-watermark) → engine → Supabase (`trustrank`, `scores_by_task`, `trustrank_updated_at`);
-the app reads the live DB with **seed fallback**. The cron *refreshing* is creds-gated
-(GCP + Supabase); the engine + live scoring work from the bundled (engine-generated) seed
-with **no credentials**. Full formulas + game-resistance: **[`docs/metrics.md`](metrics.md)**.
+**TrustRank scoring (v2 — replaces the average-score).** ERC-8004 standardizes agent
+**identity** + a **feedback log**, but **not trust** (`value` is a free-form `int128` with
+no enforced scale, tags are free-text, anyone rates anyone for free → a plain average is
+noise; our audit: **34,561 indexed, 89% single-reviewer, 178 noisy tags**). Reputation is
+now **TrustRank** — an EigenTrust / PageRank trust-flow — computed by the pure, unit-tested
+engine in `packages/shared/src/trustrank.ts` (vendored at `app/lib/shared/`). The v2 graph
+is **one node per agent + one global `HUMAN` oracle node** (all non-agent reviewers; Sybil-
+defended by the **Pfand cost per review**, not wallet-counting). Two edge kinds flow toward
+agents: **review edges = sign only** (`+`/`0`/`−`; the unenforced `value` **magnitude is
+ignored**; `net<0` → **distrust flag**, not negative rank) and **payment edges** (`payer→
+agent`, real USDC, `log1p(amount)`, **propagated by the payer's own trust**). Trust flows via
+`t ← (1−a)·Cᵀ·t + a·p` with a **HUMAN-seeded prior**; Pfand-backed edges get `≈3×`. It is
+**Sybil-resistant** (a clique with no HUMAN/payment edge earns ~0). Outputs: **`trustRank`**
+(0–100, headline) + **`evidence`** (distinct reviews · payment count · volume) + **`distrust
+Flag`** + tags (side metadata only). Scores refresh every ~3h via **Vercel Cron → token-
+guarded `/api/cron/recompute`** (full BigQuery re-scan, no watermark) → engine → Supabase
+(`trustrank`, `evidence`, `distrust_flag`, `trustrank_updated_at`); the app reads the live DB
+with **seed fallback**. The cron *refreshing* is creds-gated (GCP + Supabase); the engine +
+live scoring work from the bundled (engine-generated) seed with **no credentials**. Full
+formulas + game-resistance: **[`docs/metrics.md`](metrics.md)**; pitch: **[`docs/pitch.md`](pitch.md)**.
 
 **Real agents powering the explorer:** the BigQuery pull cached **1,702** real mainnet
 agents (`indexer/scripts/real-agents.cache.json`); the app's bundled `MAINNET_AGENTS`
@@ -340,19 +351,25 @@ hashes in §3a on https://testnet.arcscan.app.
 - ✅ 13 Foundry tests passing.
 - ✅ BigQuery pull of real mainnet ERC-8004 data (44,974 / 4,120); 713 real agents bundled
   into the app; explorer/search/agent pages live on Vercel.
-- ✅ **TrustRank scoring** (EigenTrust + per-task) replaces the average-score —
-  Sybil-resistant, task-aware, unit-tested in `packages/shared/src/trustrank.ts`; surfaced
-  on badges/cards/leaderboard. Math: [`docs/metrics.md`](metrics.md).
-- ✅ **`/network`** force-directed trust constellation (d3-force; bubbles ∝ TrustRank,
-  clustered/colored by task, edges = agent→agent trust flow).
-- ✅ **Broker8004** (`agent8004.eth`) NL search — Vertex/Gemini intent extraction ordered
-  by per-task TrustRank, with a deterministic no-key fallback (Vercel-safe).
+- ✅ **TrustRank v2 scoring** (EigenTrust over a `HUMAN` oracle node + sign-only review
+  edges + real payment edges) replaces the average-score — Sybil-resistant (a clique with no
+  HUMAN/payment edge → ~0), `value` magnitude ignored, unit-tested in
+  `packages/shared/src/trustrank.ts`; surfaces **one TrustRank** + **evidence** + **distrust
+  flag** on badges/cards/leaderboard (tags demoted to "known for" chips). Math:
+  [`docs/metrics.md`](metrics.md); pitch: [`docs/pitch.md`](pitch.md).
+- ✅ **`/network`** force-directed trust constellation (d3-force) — renders the EigenTrust
+  graph itself: the **`HUMAN` node**, agents, and **review + payment edges**; bubbles ∝
+  TrustRank, edge opacity ∝ trust flow.
+- ✅ **Broker8004** (`agent8004.eth`) NL search — Vertex/Gemini intent extraction ordered by
+  TrustRank, deterministic no-key fallback (Vercel-safe); **Pfand-gated** (escrow + sign
+  review to use), the mechanism that mints the graph's edges.
 - ✅ **Recompute cron** (`/api/cron/recompute`, Vercel Cron `0 */3 * * *`): full BigQuery
   re-scan → engine → Supabase; app reads live DB with seed fallback. *(Refreshing is
   creds-gated; engine + live scoring run from the engine-generated seed with no creds.)*
 - ✅ **Rating loop** posts `giveFeedback(value=100/0, tag1=task, tag2=outcome)`;
-  `claimRebate` refunds the Pfand on *fresh* feedback **regardless of sentiment** — these
-  Pfand-backed edges get the `≈3×` weight in TrustRank.
+  `claimRebate` refunds the Pfand on *fresh* feedback **regardless of sentiment** (the engine
+  reads only the **sign**, not the magnitude) — these Pfand-backed sign-review edges, plus the
+  x402 **payment edge** they're tied to, get the `≈3×` weight in TrustRank.
 - ✅ ENS OffchainResolver deployed on Sepolia; `agent8004.eth` registered; live subnames
   (`story`, `gekko`) resolve ENSIP-25/26 records via CCIP-Read; `/api/ens` gateway served
   from the Vercel app.

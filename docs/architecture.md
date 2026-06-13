@@ -60,17 +60,17 @@ flowchart TB
     end
 
     subgraph INDEX["Index"]
-        INGEST["indexer<br/>bigquery.ts + arc-listener.ts"]
-        ENGINE["TrustRank engine<br/>packages/shared/trustrank.ts<br/>(EigenTrust + per-task)"]
-        SUPA[("Supabase<br/>agents · feedback · jobs<br/>trustrank · scores_by_task<br/>+ pgvector")]
+        INGEST["indexer<br/>bigquery.ts + arc-listener.ts<br/>+ payments (USDC Transfer)"]
+        ENGINE["TrustRank engine<br/>packages/shared/trustrank.ts<br/>EigenTrust over HUMAN node<br/>+ review (sign) + payment edges"]
+        SUPA[("Supabase<br/>agents · feedback · payments · jobs<br/>trustrank · evidence · distrustFlag<br/>+ pgvector")]
     end
 
     subgraph VERCEL["Next.js app on Vercel — pfand.vercel.app"]
         CRON["/api/cron/recompute<br/>(Vercel Cron, every 3h,<br/>token-guarded, full re-scan)"]
         API["/api routes + React Query<br/>(reads live DB, seed fallback)"]
         ENSGW["/api/ens<br/>CCIP-Read gateway<br/>ENSIP-25/26 records"]
-        BROKER["Broker8004 (agent8004.eth)<br/>NL search · Vertex/Gemini<br/>order by per-task TrustRank"]
-        NETWORK["/network<br/>d3-force trust constellation"]
+        BROKER["Broker8004 (agent8004.eth)<br/>NL search · Vertex/Gemini<br/>order by TrustRank<br/>(Pfand-gated: escrow + review to use)"]
+        NETWORK["/network<br/>d3-force trust constellation<br/>(HUMAN node + review/payment edges)"]
         UI["Explore · Search · Agent · Demo"]
     end
 
@@ -87,12 +87,12 @@ flowchart TB
     AREP --> INGEST
     ESCROW --> INGEST
     INGEST --> ENGINE
-    ENGINE -- "trustrank · scores_by_task" --> SUPA
+    ENGINE -- "trustrank · evidence · distrustFlag" --> SUPA
 
-    CLIENT -- "x402 pay fee (gas-free)" --> GATEWAYW
+    CLIENT -- "x402 pay fee (gas-free) → payment edge" --> GATEWAYW
     GATEWAYW -- "batched settle (USDC)" --> SERVICE
-    CLIENT -- "openJob (10% bond) / claimRebate" --> ESCROW
-    CLIENT -- "giveFeedback(tag1=task, tag2=outcome)" --> AREP
+    CLIENT -- "Pfand gate: openJob (10% bond) / claimRebate" --> ESCROW
+    CLIENT -- "giveFeedback(sign +/0/−, tag1=task) → review edge" --> AREP
     SERVICE -- "Claude-backed work" --> CLIENT
 
     SUPA --> API
@@ -112,14 +112,31 @@ real mainnet ERC-8004 agents.
 
 ## Trust math & scoring pipeline
 
-Reputation is no longer a clamped average of raw feedback values (trivially gameable, task-blind).
-It is **TrustRank** — an EigenTrust / PageRank trust-flow over the feedback graph — computed by the
-pure, unit-tested engine in **`packages/shared/src/trustrank.ts`** (vendored at `app/lib/shared/`).
-Trust *flows*: feedback from an already-trusted party counts more than praise from an unknown wallet,
-each edge is weighted by `satisfaction · decay · pfandBoost`, and the engine is rerun per `tag1` task
-to answer "best at X." Full formulas, the Sybil-resistance argument, and every supporting quantity
-(`satisfaction`, `distinctClients`, `trustRankRaw` vs `trustRank`, unrated handling) live in
-**[`docs/metrics.md`](metrics.md)**.
+ERC-8004 standardizes agent **identity** + a **feedback log**, but **not trust**: `value` is a
+free-form `int128` with no enforced scale, tags are arbitrary free-text, and anyone can rate anyone
+for free — so a plain average/count is noise (our audit: **34,561 agents indexed, 89% single-
+reviewer, 178 noisy tags**). Reputation is therefore **TrustRank** — an EigenTrust / PageRank
+trust-flow — computed by the pure, unit-tested engine in **`packages/shared/src/trustrank.ts`**
+(vendored at `app/lib/shared/`).
+
+The v2 graph is **one node per agent + one global `HUMAN` oracle node** (all non-agent reviewers
+collapse into it; its Sybil-defense is the **Pfand cost per review**, not wallet-counting). Two edge
+kinds flow toward agents:
+
+- **Review edges = sign only** (`+`/`0`/`−`) — the unenforced `value` **magnitude is deliberately
+  ignored**; a source vouches only when its **net sign is positive** (`net<0` → **distrust flag**,
+  not negative rank). Positive weight = `Σ 1 · decay · pfandBoost`.
+- **Payment edges** (`payer→agent`, real USDC) weighted `log1p(amount) · decay · pfandBoost` and
+  **propagated by the payer's own trust** — a low-trust payer lifts the target little, so whales /
+  wash-trading can't buy rank.
+
+Trust then flows via `t ← (1−a)·Cᵀ·t + a·p` (`a=0.15`) with a **HUMAN-seeded prior** `p`
+(`humanPrior≈0.9` on `HUMAN`). Pfand-backed edges get a `≈3×` boost. Outputs per agent:
+**`trustRank`** (0–100 percentile, pooled across networks) + **`evidence`** (distinct reviews ·
+payment count · volume) + **`distrustFlag`** + **tags** (side metadata only — never feed rank). Only
+the **raw feedback is on-chain**; everything else is **derived off-chain**. Full formulas, the
+Sybil-resistance argument, and every supporting quantity live in **[`docs/metrics.md`](metrics.md)**;
+the pitch framing is in **[`docs/pitch.md`](pitch.md)**.
 
 **Scheduled refresh (every ~3h).** Scores are recomputed on a schedule and persisted to our own
 Supabase DB; the app reads the live DB, with the static seed as the no-credentials fallback.
@@ -127,10 +144,10 @@ Supabase DB; the app reads the live DB, with the static seed as the no-credentia
 ```mermaid
 flowchart LR
     CRON["Vercel Cron<br/>0 */3 * * *"] -->|"POST (token-guarded)"| ROUTE["/api/cron/recompute<br/>(Node runtime)"]
-    ROUTE -->|"full re-scan, no watermark"| BQ["BigQuery<br/>Registered · NewFeedback (0x8004…)"]
-    BQ -->|"idempotent upsert"| SUPA[("Supabase<br/>agents · feedback")]
-    SUPA -->|"load full feedback set"| ENG["TrustRank engine<br/>EigenTrust + per-task"]
-    ENG -->|"upsert trustrank · scores_by_task · trustrank_updated_at"| SUPA
+    ROUTE -->|"full re-scan, no watermark"| BQ["BigQuery<br/>Registered · NewFeedback (0x8004…)<br/>+ USDC Transfer → payments"]
+    BQ -->|"idempotent upsert"| SUPA[("Supabase<br/>agents · feedback · payments")]
+    SUPA -->|"load feedback + payments"| ENG["TrustRank engine<br/>EigenTrust · HUMAN node<br/>sign reviews + payment edges"]
+    ENG -->|"upsert trustrank · evidence · distrustFlag · trustrank_updated_at"| SUPA
     SUPA -->|"live read (seed fallback)"| APP["/api/agents · /api/network · Broker8004 · stats"]
     APP -->|"scores updated <relative time>"| UI["UI"]
 ```
@@ -146,19 +163,21 @@ flowchart LR
 
 ## Broker8004 & the /network constellation
 
-Two new surfaces consume the per-task scores:
+Two surfaces consume TrustRank:
 
 - **Broker8004 (`agent8004.eth`)** — the NL front door (an upgrade of `/search`). A query like *"cheap
   reliable Solidity auditor that takes x402"* goes through **Vertex AI (Gemini)** intent extraction
   (`{ taskTag, skills, maxPrice, minTrust, requiresX402, … }`) with a **deterministic `extractFilters`
-  fallback** when no key is present (Vercel-safe). Results are filtered, then **ordered by per-task
-  TrustRank** (global TrustRank as fallback), with a one-line rationale per top result and a
-  **Hire on Arc** CTA. All LLM calls go through one `app/lib/llm.ts` Vertex wrapper.
-- **`/network`** — a force-directed **trust constellation** (`d3-force`, top ~120 rated agents):
-  bubble area ∝ `sqrt(trustRankRaw)`, color/cluster by dominant task (`topTask`), edges = agent→agent
-  trust flow (opacity ∝ weight). Hover → mini agent card; click → `/agent/[id]`; task-filter chips
-  re-cluster and re-size by per-task score. Served by `/api/network` (`{ nodes, edges }`),
-  client-side only (lazy-loaded with a skeleton, no SSR crash).
+  fallback** when no key is present (Vercel-safe). Results are filtered, then **ordered by TrustRank**,
+  with a one-line rationale per top result and a **Hire on Arc** CTA. **Using the broker is Pfand-gated**
+  — escrow a small deposit + leave a sign review of the agent used; the deposit returns on review (the
+  same `RebateEscrow` gate). This is the mechanism that **mints** the graph's edges. All LLM calls go
+  through one `app/lib/llm.ts` Vertex wrapper.
+- **`/network`** — a force-directed **trust constellation** (`d3-force`, top ~120 rated agents) that
+  renders the **EigenTrust graph itself**: the `HUMAN` oracle node, agent nodes, and **review +
+  payment edges**. Bubble area ∝ `sqrt(trustRankRaw)`, color/cluster by dominant tag (`topTask`, side
+  metadata), edge opacity ∝ trust flow. Hover → mini agent card; click → `/agent/[id]`. Served by
+  `/api/network` (`{ nodes, edges }`), client-side only (lazy-loaded with a skeleton, no SSR crash).
 
 ## The Pfand loop (sequence)
 
@@ -185,7 +204,7 @@ sequenceDiagram
     C->>E: claimRebate(jobId)
     E->>R: getLastIndex > snapshot && !revoked (sentiment-neutral)
     E-->>C: return Pfand ✅ (success OR fail)
-    R-->>I: NewFeedback indexed → TrustRank + per-task score + ENS update
+    R-->>I: NewFeedback indexed → sign review edge (+ payment edge) → TrustRank + ENS update
 ```
 
 If the client never posts fresh feedback before the deadline, anyone can call `forfeitPfand`, which
@@ -195,9 +214,12 @@ scraped feedback events.
 
 The success/fail rating posts `giveFeedback(value = success ? 100 : 0, tag1 = task, tag2 = outcome)`,
 and `claimRebate` refunds the bond on any *fresh* feedback **regardless of sentiment** — a "fail"
-refunds exactly like a "success." These Pfand-backed, task-tagged ratings become the
+refunds exactly like a "success" (the engine reads only the **sign**, never the `value` magnitude).
+These Pfand-backed reviews — together with the x402 **payment edge** they're tied to — become the
 **highest-weighted edges** (`pfandBoost ≈ 3×`) feeding the TrustRank engine, so the most
-economically-real feedback dominates the scores. See [`docs/metrics.md`](metrics.md).
+economically-real signal dominates the scores. This enforcement is what **manufactures** a dense,
+honest graph (vs. merely observing one, à la TraceRank). See [`docs/metrics.md`](metrics.md) and the
+pitch in [`docs/pitch.md`](pitch.md).
 
 ## Why each prize is satisfied
 

@@ -34,6 +34,8 @@ const HEIGHT = 620;
 const TICKS = 300;
 const R_MIN = 6;
 const R_MAX = 34;
+/** The HUMAN trust-root node — fixed, centered, larger than any agent. */
+const R_HUMAN = 30;
 
 /** Stable task → color map. Cycles --chart-1..6 by first-seen order. */
 export function buildTaskColors(tasks: string[]): Map<string, string> {
@@ -50,7 +52,10 @@ type SimNode = SimulationNodeDatum & {
   cy: number;
 };
 
-type SimLink = SimulationLinkDatum<SimNode> & { weight: number };
+type SimLink = SimulationLinkDatum<SimNode> & {
+  weight: number;
+  kind: "review" | "payment";
+};
 
 function radiusScale(raw: number | null, maxRaw: number): number {
   if (!raw || maxRaw <= 0) return R_MIN;
@@ -88,7 +93,17 @@ export function TrustGraph({
 
   const { sim, links } = useMemo(() => {
     if (nodes.length === 0)
-      return { sim: [] as SimNode[], links: [] as { x1: number; y1: number; x2: number; y2: number; weight: number }[] };
+      return {
+        sim: [] as SimNode[],
+        links: [] as {
+          x1: number;
+          y1: number;
+          x2: number;
+          y2: number;
+          weight: number;
+          kind: "review" | "payment";
+        }[],
+      };
 
     const maxRaw = Math.max(
       ...nodes.map((n) => n.trustRankRaw ?? 0),
@@ -106,6 +121,20 @@ export function TrustGraph({
     const maxWeight = Math.max(...edges.map((e) => e.weight), Number.EPSILON);
 
     const simNodes: SimNode[] = nodes.map((node) => {
+      // The HUMAN root: pinned dead-center, larger, neutral signal color.
+      if (node.kind === "human") {
+        return {
+          node,
+          r: R_HUMAN,
+          color: "var(--signal)",
+          cx: WIDTH / 2,
+          cy: HEIGHT / 2,
+          x: WIDTH / 2,
+          y: HEIGHT / 2,
+          fx: WIDTH / 2,
+          fy: HEIGHT / 2,
+        };
+      }
       const key = node.topTask ?? "—";
       const [cx, cy] = centers.get(key) ?? [WIDTH / 2, HEIGHT / 2];
       return {
@@ -126,6 +155,7 @@ export function TrustGraph({
         source: byId.get(e.source)!,
         target: byId.get(e.target)!,
         weight: e.weight,
+        kind: e.kind,
       }));
 
     const simulation = forceSimulation(simNodes)
@@ -156,6 +186,7 @@ export function TrustGraph({
         x2: t.x ?? 0,
         y2: t.y ?? 0,
         weight: l.weight / maxWeight,
+        kind: l.kind,
       };
     });
 
@@ -179,55 +210,117 @@ export function TrustGraph({
       role="img"
       aria-label="Trust constellation of agents"
     >
-      {/* edges */}
+      {/* edges — review (solid, faint) vs payment (dashed, signal accent) */}
       <g>
-        {links.map((l, i) => (
-          <line
-            key={i}
-            x1={l.x1}
-            y1={l.y1}
-            x2={l.x2}
-            y2={l.y2}
-            stroke="var(--signal-ink)"
-            strokeWidth={0.75 + l.weight * 1.5}
-            strokeOpacity={0.08 + l.weight * 0.32}
-          />
-        ))}
+        {links.map((l, i) =>
+          l.kind === "payment" ? (
+            <line
+              key={i}
+              x1={l.x1}
+              y1={l.y1}
+              x2={l.x2}
+              y2={l.y2}
+              stroke="var(--signal)"
+              strokeWidth={0.9 + l.weight * 2}
+              strokeOpacity={0.25 + l.weight * 0.45}
+              strokeDasharray="4 3"
+              strokeLinecap="round"
+            />
+          ) : (
+            <line
+              key={i}
+              x1={l.x1}
+              y1={l.y1}
+              x2={l.x2}
+              y2={l.y2}
+              stroke="var(--signal-ink)"
+              strokeWidth={0.75 + l.weight * 1.5}
+              strokeOpacity={0.08 + l.weight * 0.32}
+            />
+          ),
+        )}
       </g>
 
       {/* nodes */}
       <g>
-        {sim.map((s) => (
-          <Tooltip key={s.node.id}>
-            <TooltipTrigger asChild>
-              <circle
-                cx={s.x ?? 0}
-                cy={s.y ?? 0}
-                r={s.r}
-                fill={s.color}
-                fillOpacity={0.82}
-                stroke="var(--card)"
-                strokeWidth={1.5}
-                className="cursor-pointer transition-[fill-opacity] hover:fill-opacity-100"
-                onClick={() => router.push(`/agent/${s.node.agentId}`)}
-              />
-            </TooltipTrigger>
-            <TooltipContent className="font-mono text-[11px]">
-              <div className="font-display text-xs font-semibold text-background">
-                {s.node.name}
-              </div>
-              <div className="text-background/70">
-                TrustRank {s.node.trustRank ?? "—"}
-                {s.node.taskScore != null
-                  ? ` · task ${Math.round(s.node.taskScore)}`
-                  : ""}
-              </div>
-              {s.node.topTask && (
-                <div className="text-background/70">{s.node.topTask}</div>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        ))}
+        {sim.map((s) => {
+          const human = s.node.kind === "human";
+          const distrust = s.node.distrustFlag === true;
+          const ev = s.node.evidence;
+          return (
+            <Tooltip key={s.node.id}>
+              <TooltipTrigger asChild>
+                <g
+                  className={human ? "" : "cursor-pointer"}
+                  onClick={
+                    human
+                      ? undefined
+                      : () => router.push(`/agent/${s.node.agentId}`)
+                  }
+                >
+                  {/* distrust ring */}
+                  {distrust && (
+                    <circle
+                      cx={s.x ?? 0}
+                      cy={s.y ?? 0}
+                      r={s.r + 3}
+                      fill="none"
+                      stroke="var(--pfand-forfeited)"
+                      strokeWidth={1.5}
+                      strokeOpacity={0.9}
+                    />
+                  )}
+                  <circle
+                    cx={s.x ?? 0}
+                    cy={s.y ?? 0}
+                    r={s.r}
+                    fill={s.color}
+                    fillOpacity={human ? 0.95 : 0.82}
+                    stroke={human ? "var(--signal-ink)" : "var(--card)"}
+                    strokeWidth={human ? 2 : 1.5}
+                    className="transition-[fill-opacity] hover:fill-opacity-100"
+                  />
+                  {human && (
+                    <text
+                      x={s.x ?? 0}
+                      y={(s.y ?? 0) + s.r + 14}
+                      textAnchor="middle"
+                      className="fill-foreground font-mono text-[11px] font-semibold uppercase tracking-wider"
+                    >
+                      Human
+                    </text>
+                  )}
+                </g>
+              </TooltipTrigger>
+              <TooltipContent className="font-mono text-[11px]">
+                <div className="font-display text-xs font-semibold text-background">
+                  {human ? "Human — trust root" : s.node.name}
+                </div>
+                {!human && (
+                  <div className="text-background/70">
+                    TrustRank {s.node.trustRank ?? "unrated"}
+                    {s.node.taskScore != null
+                      ? ` · task ${Math.round(s.node.taskScore)}`
+                      : ""}
+                  </div>
+                )}
+                {ev && (
+                  <div className="text-background/70">
+                    {ev.distinctReviews} review
+                    {ev.distinctReviews === 1 ? "" : "s"} · {ev.paymentCount}{" "}
+                    payment{ev.paymentCount === 1 ? "" : "s"}
+                  </div>
+                )}
+                {distrust && (
+                  <div className="text-pfand-forfeited">⚠ distrust</div>
+                )}
+                {!human && s.node.topTask && (
+                  <div className="text-background/70">{s.node.topTask}</div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </g>
     </svg>
   );

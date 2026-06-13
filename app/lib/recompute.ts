@@ -22,6 +22,7 @@ import {
   ERC8004_MAINNET,
   type Agent,
   type FeedbackEntry,
+  type Payment,
 } from "@pfand/shared";
 import { ensureGcpCredentials } from "./gcp-creds";
 
@@ -38,6 +39,13 @@ const TOPIC_NEWFEEDBACK =
 const SINCE = process.env.BQ_SINCE ?? "2026-01-28";
 const DATASET =
   "bigquery-public-data.goog_blockchain_ethereum_mainnet_us.logs";
+
+// USDC (mainnet) ERC-20 + the canonical Transfer(address,address,uint256) topic0.
+const USDC_ADDRESS = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"; // lowercased
+const USDC_DECIMALS = 6;
+// keccak256("Transfer(address,address,uint256)")
+const TOPIC_TRANSFER =
+  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 const IDENTITY_REGISTRY = ERC8004_MAINNET.identityRegistry.toLowerCase();
 const REPUTATION_REGISTRY = ERC8004_MAINNET.reputationRegistry.toLowerCase();
@@ -103,6 +111,23 @@ WHERE address = @reputation_registry
   AND block_timestamp >= TIMESTAMP(@since)
 `;
 
+// USDC ERC-20 Transfer logs whose `to` (topics[2], last 20 bytes) is one of the
+// agent wallets we pulled. from = topics[1] addr, amount = data uint256 / 1e6.
+// @wallets is a STRING ARRAY of 0x-prefixed lowercased addresses.
+const SQL_PAYMENTS = `
+SELECT
+  CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(1)], 27)) AS from_addr,
+  CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27)) AS to_addr,
+  data                                             AS raw_data,
+  block_timestamp,
+  transaction_hash
+FROM \`${DATASET}\`
+WHERE address = @usdc_address
+  AND topics[SAFE_OFFSET(0)] = @topic_transfer
+  AND block_timestamp >= TIMESTAMP(@since)
+  AND LOWER(CONCAT('0x', SUBSTR(topics[SAFE_OFFSET(2)], 27))) IN UNNEST(@wallets)
+`;
+
 /* ------------------------- pure-JS ABI decoders ------------------------- */
 
 /** Strip 0x and return the hex body. */
@@ -152,6 +177,21 @@ function decodeFeedbackTags(raw: string): { tag1: string; tag2: string } {
   const data = body(raw);
   if (!data || data.length < 64 * 5) return { tag1: "", tag2: "" };
   return { tag1: readDynString(data, 3), tag2: readDynString(data, 4) };
+}
+
+/** Decode a USDC Transfer amount (uint256 in `data`, single word) to human units. */
+function decodeUsdcAmount(raw: string): number {
+  const data = body(raw);
+  if (!data) return 0;
+  const hex = data.slice(0, 64);
+  if (!hex) return 0;
+  try {
+    const base = BigInt("0x" + hex);
+    // human units = base / 10^decimals, keep fractional precision as a JS number.
+    return Number(base) / Math.pow(10, USDC_DECIMALS);
+  } catch {
+    return 0;
+  }
 }
 
 function tsToIso(ts: unknown): string | null {
@@ -246,6 +286,13 @@ interface FbRow {
   value_decimals: number | string;
   raw_data: string;
   block_number: number | string | null;
+  block_timestamp: { value: string } | string;
+  transaction_hash: string | null;
+}
+interface PayRow {
+  from_addr: string;
+  to_addr: string;
+  raw_data: string;
   block_timestamp: { value: string } | string;
   transaction_hash: string | null;
 }
@@ -390,9 +437,88 @@ export async function recompute(): Promise<RecomputeSummary> {
     };
   });
 
-  // Run the real EigenTrust engine over ALL feedback + agents.
+  // --- payment ingestion (BEST-EFFORT; must never break the review path) ---
+  // Query mainnet USDC Transfer logs landing on any agent wallet (owner or
+  // payToWallet), decode amounts, build Payment[], and upsert. On ANY error we
+  // log and fall through with payments = [] so reviews still score.
+  let payments: Payment[] = [];
+  try {
+    // wallet (lowercased) -> agent id, so we can attribute each Transfer.
+    const walletToAgent = new Map<string, string>();
+    for (const a of agents) {
+      if (a.owner) walletToAgent.set(a.owner.toLowerCase(), a.agentId);
+      if (a.payToWallet)
+        walletToAgent.set(a.payToWallet.toLowerCase(), a.agentId);
+    }
+    const wallets = [...walletToAgent.keys()];
+    if (wallets.length > 0) {
+      const payResult = await bq.query({
+        query: SQL_PAYMENTS,
+        params: {
+          usdc_address: USDC_ADDRESS,
+          topic_transfer: TOPIC_TRANSFER,
+          since: SINCE,
+          wallets,
+        },
+      });
+      const payRows = (payResult[0] ?? []) as PayRow[];
+      payments = payRows
+        .map((r): Payment | null => {
+          const toAgentId = walletToAgent.get(
+            String(r.to_addr ?? "").toLowerCase(),
+          );
+          if (!toAgentId) return null;
+          const amountUsdc = decodeUsdcAmount(String(r.raw_data ?? "0x"));
+          if (!(amountUsdc > 0)) return null;
+          return {
+            from: String(r.from_addr ?? "").toLowerCase(),
+            toAgentId,
+            network: "mainnet" as const,
+            amountUsdc,
+            timestamp: tsToIso(r.block_timestamp),
+            pfandVerified: false,
+          };
+        })
+        .filter((p): p is Payment => p !== null);
+
+      // Upsert into the payments table (idempotent on the composite key).
+      const payUpsertRows = payRows
+        .map((r) => {
+          const to = String(r.to_addr ?? "").toLowerCase();
+          const toAgentId = walletToAgent.get(to);
+          if (!toAgentId) return null;
+          const amountUsdc = decodeUsdcAmount(String(r.raw_data ?? "0x"));
+          if (!(amountUsdc > 0)) return null;
+          return {
+            network: "mainnet",
+            from_addr: String(r.from_addr ?? "").toLowerCase(),
+            to_agent_id: toAgentId,
+            amount_usdc: amountUsdc,
+            ts: tsToIso(r.block_timestamp),
+            pfand_verified: false,
+            tx_hash: r.transaction_hash ?? "",
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null && r.tx_hash !== "");
+      for (let i = 0; i < payUpsertRows.length; i += 500) {
+        const chunk = payUpsertRows.slice(i, i + 500);
+        const { error } = await supabase
+          .from("payments")
+          .upsert(chunk, {
+            onConflict: "network,tx_hash,to_agent_id,from_addr",
+          });
+        if (error) throw new Error(`upsert payments: ${error.message}`);
+      }
+    }
+  } catch (err) {
+    console.error("[recompute] payment ingestion failed, continuing with none:", err);
+    payments = [];
+  }
+
+  // Run the real EigenTrust engine over ALL feedback + agents + payments.
   const updatedAt = new Date().toISOString();
   const scores = scoreAgents(feedback, agents, {
+    payments,
     nowMs: Date.now(),
     halfLifeDays: 180,
     pfandBoost: 3,
@@ -405,9 +531,12 @@ export async function recompute(): Promise<RecomputeSummary> {
         ...a.reputation,
         trustRank: s.trustRank,
         trustRankRaw: s.trustRankRaw,
-        scoresByTask: s.scoresByTask,
-        distinctClients: s.distinctClients,
         topTask: s.topTask,
+        evidence: s.evidence,
+        distrustFlag: s.distrustFlag,
+        tags: s.tags,
+        // back-compat: distinctClients now sourced from evidence.distinctReviews.
+        distinctClients: s.evidence.distinctReviews,
       };
       if (s.trustRank != null) rated++;
     }
@@ -455,6 +584,10 @@ export async function recompute(): Promise<RecomputeSummary> {
     scores_by_task: a.reputation.scoresByTask ?? [],
     distinct_clients: a.reputation.distinctClients ?? 0,
     trustrank_updated_at: updatedAt,
+    // v2 trust-engine outputs.
+    evidence: a.reputation.evidence ?? null,
+    distrust_flag: a.reputation.distrustFlag ?? false,
+    tags: a.reputation.tags ?? [],
     created_at_block: a.createdAtBlock,
     created_at: a.createdAt,
   }));

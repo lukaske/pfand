@@ -12,9 +12,8 @@ import {
   headlineScore,
   scoreColor,
 } from "@/components/reputation-badge";
-import { TopTaskChip } from "@/components/agent-card";
+import { TopTaskChip, EvidenceLine, TagChips } from "@/components/agent-card";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -44,7 +43,6 @@ import { cn } from "@/lib/utils";
 const SORTS: { value: NonNullable<AgentFilters["sort"]>; label: string }[] = [
   { value: "score", label: "TrustRank" },
   { value: "feedback", label: "Most feedback" },
-  { value: "price", label: "Lowest price" },
   { value: "recent", label: "Newest" },
 ];
 
@@ -175,18 +173,6 @@ export default function ExplorePage() {
                 <Zap className="h-3.5 w-3.5" />
                 x402
               </button>
-              <button
-                type="button"
-                onClick={() => patch({ payable: !filters.payable })}
-                className={cn(
-                  "inline-flex h-8 items-center rounded-xl border px-3 font-mono text-xs transition-colors",
-                  filters.payable
-                    ? "border-pfand-returned/40 bg-pfand-returned/10 text-pfand-returned"
-                    : "border-border text-muted-foreground hover:text-foreground",
-                )}
-              >
-                payable
-              </button>
 
               <div className="ml-auto">
                 <Select
@@ -223,13 +209,7 @@ export default function ExplorePage() {
                     TrustRank
                   </TableHead>
                   <TableHead className="font-mono text-[10px] uppercase tracking-wider">
-                    Top task
-                  </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider">
-                    Price
-                  </TableHead>
-                  <TableHead className="font-mono text-[10px] uppercase tracking-wider">
-                    State
+                    Known for
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -237,7 +217,7 @@ export default function ExplorePage() {
                 {agents.isLoading || !agents.data
                   ? [0, 1, 2, 3, 4].map((i) => (
                       <TableRow key={i}>
-                        <TableCell colSpan={7}>
+                        <TableCell colSpan={5}>
                           <Skeleton className="h-6 w-full" />
                         </TableCell>
                       </TableRow>
@@ -273,41 +253,19 @@ export default function ExplorePage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <ReputationBadge reputation={a.reputation} />
+                          <div className="flex flex-col gap-1">
+                            <ReputationBadge reputation={a.reputation} />
+                            <EvidenceLine reputation={a.reputation} />
+                          </div>
                         </TableCell>
                         <TableCell>
-                          {a.reputation.topTask ? (
+                          {a.reputation.tags && a.reputation.tags.length > 0 ? (
+                            <TagChips tags={a.reputation.tags} max={3} />
+                          ) : a.reputation.topTask ? (
                             <TopTaskChip task={a.reputation.topTask} />
                           ) : (
                             <span className="font-mono text-xs text-muted-foreground">
                               —
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
-                          {a.priceUsdc != null ? (
-                            <>
-                              {formatUsdc(a.priceUsdc * 1_000_000)}
-                              <span className="ml-1 text-muted-foreground">
-                                USDC
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">free</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {a.payable ? (
-                            <Badge
-                              variant="outline"
-                              className="gap-1.5 border-pfand-returned/30 font-mono text-[10px] text-pfand-returned"
-                            >
-                              <span className="size-1.5 rounded-full bg-pfand-returned" />
-                              payable
-                            </Badge>
-                          ) : (
-                            <span className="font-mono text-[10px] text-muted-foreground">
-                              listed
                             </span>
                           )}
                         </TableCell>

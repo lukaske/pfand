@@ -40,6 +40,10 @@ create table if not exists agents (
   scores_by_task     jsonb       not null default '[]',    -- [{tag,score,count}] desc by score
   distinct_clients   integer     not null default 0,       -- unique non-revoked raters
   trustrank_updated_at timestamptz,                        -- when TrustRank was last recomputed
+  -- v2 trust-engine outputs (see TrustScore in packages/shared/src/trustrank.ts)
+  evidence           jsonb,                                -- {distinctReviews,paymentCount,paymentVolumeUsdc}
+  distrust_flag      boolean,                              -- net feedback sign is negative
+  tags               jsonb,                                -- [{tag,count}] top free-text labels desc
   created_at_block   bigint,
   created_at         timestamptz,
   -- hybrid search vector over name+description+skills+domains
@@ -55,6 +59,9 @@ alter table agents add column if not exists trustrank_raw        numeric;
 alter table agents add column if not exists scores_by_task       jsonb not null default '[]';
 alter table agents add column if not exists distinct_clients     integer not null default 0;
 alter table agents add column if not exists trustrank_updated_at timestamptz;
+alter table agents add column if not exists evidence             jsonb;
+alter table agents add column if not exists distrust_flag        boolean;
+alter table agents add column if not exists tags                 jsonb;
 
 create index if not exists agents_x402_idx       on agents (x402_support);
 create index if not exists agents_payable_idx     on agents (payable);
@@ -90,6 +97,24 @@ create table if not exists feedback (
 
 create index if not exists feedback_agent_idx on feedback (network, agent_id);
 create index if not exists feedback_ts_idx    on feedback (timestamp);
+
+-- -----------------------------------------------------------------------------
+-- payments: real USDC ERC-20 Transfer flows into agent wallets (v2 trust edges).
+-- See Payment in packages/shared/src/db.ts. from_addr/to_agent_id are lowercased
+-- addresses / agent ids; amount_usdc is human units (raw / 1e6).
+-- -----------------------------------------------------------------------------
+create table if not exists payments (
+  network        text     not null check (network in ('mainnet','arc')),
+  from_addr      text     not null,                       -- 0x payer (lowercased)
+  to_agent_id    text     not null,                       -- recipient agent id
+  amount_usdc    numeric  not null,                       -- human USDC units
+  ts             timestamptz,
+  pfand_verified boolean  not null default false,
+  tx_hash        text     not null,
+  primary key (network, tx_hash, to_agent_id, from_addr)
+);
+
+create index if not exists payments_to_agent_idx on payments (to_agent_id);
 
 -- -----------------------------------------------------------------------------
 -- jobs: Pfand RebateEscrow jobs on Arc (see Job in db.ts).

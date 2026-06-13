@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Zap } from "lucide-react";
-import type { Agent, AgentSearchResult } from "@pfand/shared";
+import type { Agent, AgentSearchResult, ReputationSummary } from "@pfand/shared";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -53,6 +53,76 @@ export function TopTaskChip({
       />
       {task}
     </Badge>
+  );
+}
+
+/**
+ * Compact, payment-backed evidence line for an agent's reputation.
+ * Omits any zero-valued part gracefully; renders nothing when no evidence.
+ */
+export function EvidenceLine({
+  reputation,
+  className,
+}: {
+  reputation: ReputationSummary;
+  className?: string;
+}) {
+  const e = reputation.evidence;
+  if (!e) return null;
+  const parts: string[] = [];
+  if (e.distinctReviews > 0)
+    parts.push(`${e.distinctReviews} review${e.distinctReviews === 1 ? "" : "s"}`);
+  if (e.paymentCount > 0)
+    parts.push(`${e.paymentCount} payment${e.paymentCount === 1 ? "" : "s"}`);
+  if (e.paymentVolumeUsdc > 0)
+    parts.push(`$${formatUsdc(e.paymentVolumeUsdc * 1_000_000)} paid`);
+  if (parts.length === 0) return null;
+  return (
+    <p
+      className={cn(
+        "font-mono text-[10px] tabular-nums text-muted-foreground",
+        className,
+      )}
+    >
+      {parts.join(" · ")}
+    </p>
+  );
+}
+
+/** "known for: …" tag chips tinted by the chart palette. */
+export function TagChips({
+  tags,
+  max = 3,
+  className,
+}: {
+  tags?: { tag: string; count: number }[];
+  max?: number;
+  className?: string;
+}) {
+  if (!tags || tags.length === 0) return null;
+  const shown = tags.slice(0, max);
+  return (
+    <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
+      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        known for
+      </span>
+      {shown.map((t) => {
+        const c = taskColor(t.tag);
+        return (
+          <span
+            key={t.tag}
+            className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card px-1.5 py-0.5 font-mono text-[10px] text-foreground"
+            title={`${t.tag} — ${t.count}×`}
+          >
+            <span
+              className="size-1.5 rounded-full"
+              style={{ backgroundColor: c }}
+            />
+            {t.tag}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -115,24 +185,15 @@ export function AgentCard({
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <NetworkBadge network={agent.network} />
-            <ReputationBadge reputation={agent.reputation} />
-            {agent.reputation.topTask && (
-              <TopTaskChip task={agent.reputation.topTask} />
-            )}
+        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <NetworkBadge network={agent.network} />
+              <ReputationBadge reputation={agent.reputation} />
+            </div>
+            <EvidenceLine reputation={agent.reputation} className="text-right" />
           </div>
-          <span className="font-mono text-xs tabular-nums text-foreground">
-            {agent.priceUsdc != null ? (
-              <>
-                {formatUsdc(agent.priceUsdc * 1_000_000)}{" "}
-                <span className="text-muted-foreground">USDC</span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">free</span>
-            )}
-          </span>
+          <TagChips tags={agent.reputation.tags} />
         </div>
 
         {search && (

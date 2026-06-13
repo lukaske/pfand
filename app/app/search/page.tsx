@@ -2,7 +2,16 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, Search, Sparkles, Target } from "lucide-react";
+import {
+  ArrowRight,
+  Coins,
+  Search,
+  Sparkles,
+  Target,
+  ThumbsUp,
+  Undo2,
+  Zap,
+} from "lucide-react";
 import type { AgentSearchResult, SearchFilters } from "@pfand/shared";
 import { SiteHeader } from "@/components/site-header";
 import { AgentCard } from "@/components/agent-card";
@@ -85,6 +94,80 @@ function SourcePill({ source }: { source?: "vertex" | "deterministic" }) {
   );
 }
 
+/** The escrow → use → review → refund gate, as a compact 4-step strip. */
+const GATE_STEPS: {
+  icon: typeof Coins;
+  label: string;
+  detail: string;
+  tone: string;
+}[] = [
+  {
+    icon: Coins,
+    label: "Escrow Pfand",
+    detail: "lock a small refundable deposit",
+    tone: "text-pfand-held",
+  },
+  {
+    icon: Zap,
+    label: "Use the agent",
+    detail: "free · pay any fee gas-free over x402",
+    tone: "text-signal-ink",
+  },
+  {
+    icon: ThumbsUp,
+    label: "Sign review",
+    detail: "one tap 👍 / 👎 — mints a trust edge",
+    tone: "text-foreground",
+  },
+  {
+    icon: Undo2,
+    label: "Pfand returns",
+    detail: "deposit refunds the moment you review",
+    tone: "text-pfand-returned",
+  },
+];
+
+function EnforcementBanner() {
+  return (
+    <div className="mt-8 flex flex-col gap-3 rounded-xl border border-signal/25 bg-signal-wash/40 p-4 shadow-soft-sm">
+      <p className="text-sm leading-relaxed text-foreground">
+        <span className="font-semibold">Free to use.</span> To rank agents
+        honestly, using the broker requires a small{" "}
+        <span className="font-semibold text-pfand-held">Pfand escrow</span> + a
+        one-tap{" "}
+        <span className="font-semibold">👍 / 👎 review</span> of the agent you
+        pick — even free ones.{" "}
+        <span className="text-muted-foreground">
+          Your deposit returns the moment you review. Every review mints a new
+          edge in the TrustRank graph, which is what makes it dense and
+          Sybil-costly.
+        </span>
+      </p>
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {GATE_STEPS.map((s, i) => (
+          <li
+            key={s.label}
+            className="flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5 shadow-soft-sm"
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                {i + 1}
+              </span>
+              <s.icon className={cn("h-3.5 w-3.5", s.tone)} />
+              <span className="font-mono text-[11px] font-semibold text-foreground">
+                {s.label}
+              </span>
+            </div>
+            <span className="font-mono text-[10px] leading-snug text-muted-foreground">
+              {s.detail}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /** A broker result: the agent card + TrustRank / per-task / hire CTA rail. */
 function BrokerResult({
   result,
@@ -129,13 +212,19 @@ function BrokerResult({
 
       <AgentCard agent={result} />
 
-      <Link
-        href={result.payable ? `/agent/${result.agentId}` : "/demo"}
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-signal px-3 font-mono text-xs font-semibold text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
-      >
-        Hire on Arc
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
+      <div className="flex flex-col gap-1">
+        <Link
+          href={result.payable ? `/agent/${result.agentId}` : "/demo"}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-signal px-3 font-mono text-xs font-semibold text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
+        >
+          Hire on Arc
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+        <span className="flex items-center justify-center gap-1 font-mono text-[10px] text-muted-foreground">
+          <Coins className="h-2.5 w-2.5 text-pfand-held" />
+          escrow + 👍/👎 review to use · Pfand returns when you review
+        </span>
+      </div>
     </div>
   );
 }
@@ -175,10 +264,18 @@ export default function SearchPage() {
           </p>
         </div>
 
+        {/* Enforcement gate: escrow → use → review → refund */}
+        <div
+          className="animate-in fade-in slide-in-from-bottom-3 duration-700"
+          style={{ animationDelay: "80ms" }}
+        >
+          <EnforcementBanner />
+        </div>
+
         {/* Search box */}
         <form
           onSubmit={onSubmit}
-          className="mt-8 animate-in fade-in slide-in-from-bottom-3 duration-700"
+          className="mt-6 animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "100ms" }}
         >
           <div className="flex items-center gap-2 rounded-xl border-[1.5px] border-[color-mix(in_oklch,var(--signal)_45%,var(--border))] bg-card px-4 py-3 shadow-soft-md transition-shadow focus-within:shadow-[0_0_0_4px_var(--signal-wash),var(--shadow-md)]">

@@ -5,6 +5,8 @@
 
 export type AgentNetwork = "mainnet" | "arc";
 
+import type { Evidence } from "./trustrank";
+
 /** Per-task-category trust score for an agent (0–100 percentile within that task). */
 export interface TaskScore {
   tag: string;
@@ -30,6 +32,12 @@ export interface ReputationSummary {
   distinctClients?: number;
   /** Highest-scoring task tag, or null if unrated. */
   topTask?: string | null;
+  /** v2 trust-engine evidence: distinct reviews + payment counts/volume. */
+  evidence?: Evidence;
+  /** v2: net feedback sign is negative. */
+  distrustFlag?: boolean;
+  /** v2: top free-text labels for the agent, desc by count. */
+  tags?: { tag: string; count: number }[];
 }
 
 export interface Agent {
@@ -73,6 +81,19 @@ export interface FeedbackEntry {
   txHash: string | null;
   blockNumber: number | null;
   timestamp: string | null; // ISO
+}
+
+/**
+ * A real payment flow into an agent — a trust edge propagated by the payer's
+ * own trust. `pfandVerified` marks an escrow-backed (RebateEscrow) payment.
+ */
+export interface Payment {
+  from: string; // 0x payer address (lowercased ok)
+  toAgentId: string; // recipient agent id
+  network: AgentNetwork;
+  amountUsdc: number; // human USDC units
+  timestamp: string | null; // ISO
+  pfandVerified?: boolean; // escrow-backed payment
 }
 
 export type JobStatus = "open" | "completed" | "settled" | "forfeited";

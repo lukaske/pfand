@@ -15,6 +15,10 @@ import { log, formatUsdc6, parseUsdc6 } from "./lib/log.js";
  *   2. Runs the full Pfand escrow lifecycle with viem:
  *      approve → openJob → completeJob → giveFeedback → claimRebate,
  *   logging every tx hash and the deposit state (held → returned).
+ *
+ * The escrow is the enforcement mechanism: using an agent obliges you to leave
+ * a SIGN-ONLY review (👍 success / 👎 fail). That review mints a trust-graph
+ * edge, and the Pfand deposit returns the moment any fresh review lands.
  */
 
 export interface HireTarget {
@@ -112,18 +116,20 @@ export async function runEscrowLifecycle(
   log.info("Pfand bond escrowed (held pending fresh feedback):");
   await escrow.logDepositState(opened.jobId);
 
-  // giveFeedback — fresh, on-chain ERC-8004 signal unlocks the pfand.
-  // The signal carries the TASK (tag1) and the binary OUTCOME (tag2): an honest
-  // rating — success OR fail — refunds the bond. value is the outcome as 100/0.
+  // giveFeedback — a SIGN-ONLY review that mints a trust-graph edge and unlocks
+  // the pfand. There is no magnitude: success → value 100 (positive edge),
+  // fail → value 0 (negative edge), valueDecimals 0. The signal carries the
+  // TASK (tag1) and the binary OUTCOME (tag2). Posting ANY fresh review — 👍 or
+  // 👎 — refunds the bond; the deposit pays for the edge, not for a good rating.
   const outcome = resolveOutcome(target);
   const taskTag = target.taskTag ?? "audit";
   const idxBefore = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
   res.txHashes.feedback = await escrow.giveFeedback({
     agentId: target.agentId,
-    value: outcome === "success" ? 100n : 0n,
+    value: outcome === "success" ? 100n : 0n, // sign only: 100=👍, 0=👎
     valueDecimals: 0,
-    tag1: taskTag,
-    tag2: outcome,
+    tag1: taskTag, // task being reviewed
+    tag2: outcome, // "success" | "fail" — the edge polarity
     endpoint: target.endpoint,
     feedbackURI: `pfand://job/${opened.jobId}/feedback`,
   });

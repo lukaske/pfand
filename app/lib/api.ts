@@ -101,24 +101,32 @@ export function useSearch() {
 
 /* ------------------------- trust network (bubble viz) -------------------- */
 
-/** One agent bubble in the /network trust constellation. */
+/** One bubble in the /network trust constellation — an agent, or the HUMAN root. */
 export interface NetworkNode {
-  id: string; // `${network}:${agentId}`
-  agentId: string;
-  network: "mainnet" | "arc";
+  id: string; // `${network}:${agentId}` or "HUMAN"
+  kind: "agent" | "human"; // the HUMAN oracle node vs an agent
+  agentId: string; // "" for the HUMAN node
+  network: "mainnet" | "arc" | null; // null for HUMAN
   name: string;
   ensName: string | null;
   trustRank: number | null; // 0–100, for label/sort
   trustRankRaw: number | null; // raw eigenvector, for bubble area
-  topTask: string | null; // dominant task → cluster + color
+  topTask: string | null; // dominant tag → cluster + color
   taskScore?: number | null; // per-task score when a task filter is active
+  distrustFlag?: boolean; // net-negative feedback
+  evidence?: {
+    distinctReviews: number;
+    paymentCount: number;
+    paymentVolumeUsdc: number;
+  };
 }
 
-/** A directed trust-flow edge between two agent bubbles. */
+/** A directed trust edge — a review endorsement or a real payment flow. */
 export interface NetworkEdge {
-  source: string; // node id
+  source: string; // node id (an agent, or "HUMAN")
   target: string; // node id
   weight: number;
+  kind: "review" | "payment"; // endorsement vs payment edge
 }
 
 export interface NetworkResponse {

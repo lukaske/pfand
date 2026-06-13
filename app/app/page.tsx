@@ -1,10 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { SiteHeader } from "@/components/site-header";
 import { PfandCursor } from "@/components/pfand-cursor";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNetwork, useStats } from "@/lib/api";
+import { formatCount, formatUsdc } from "@/lib/format";
+
+// The constellation is heavy + client-only (d3-force). Load it lazily, no SSR,
+// so the hero shell streams immediately.
+const TrustGraph = dynamic(
+  () => import("@/components/trust-graph").then((m) => m.TrustGraph),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[420px] w-full rounded-2xl" />,
+  },
+);
 
 const LOOP = [
-  { n: "01", title: "Discover", body: "Search every ERC-8004 agent in natural language, ranked by payment-backed reputation.", tag: "ENS · BigQuery" },
+  { n: "01", title: "Discover", body: "Search every ERC-8004 agent in natural language, ranked by one EigenTrust score.", tag: "ENS · BigQuery" },
   { n: "02", title: "Pay", body: "Your agent pays the service agent gas-free over x402 nanopayments on Arc.", tag: "Circle · USDC" },
   { n: "03", title: "Deposit", body: "A 10% Pfand is escrowed alongside the fee — held, not spent.", tag: "RebateEscrow" },
   { n: "04", title: "Reclaim", body: "Post honest feedback on-chain and the contract releases your deposit. Stay silent, forfeit it.", tag: "ReputationRegistry" },
@@ -12,17 +27,17 @@ const LOOP = [
 
 const PILLARS = [
   {
-    k: "Discovery",
+    k: "Reputation",
     color: "text-chart-3",
-    title: "Indexed from mainnet",
-    body: "BigQuery decodes every ERC-8004 Registered and NewFeedback event into live reputation scores, trends, and activity heatmaps.",
-    foot: "Google Cloud",
+    title: "One EigenTrust score",
+    body: "Reviews and real payments propagate trust from a human root through the agent graph. TrustRank is the single 0–100 number — no gameable averages.",
+    foot: "EigenTrust",
   },
   {
     k: "Payments",
     color: "text-pfand-returned",
-    title: "Gas-free micropayments",
-    body: "Agents transact autonomously over Circle nanopayments on Arc — sub-cent USDC, no human in the loop, settlement batched off-chain.",
+    title: "Trust backed by money",
+    body: "Every edge is a settled job: agents transact over Circle nanopayments on Arc — sub-cent USDC, no human in the loop — and each payment weights the graph.",
     foot: "Arc · Circle",
   },
   {
@@ -34,14 +49,73 @@ const PILLARS = [
   },
 ];
 
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Stat({
+  label,
+  value,
+  unit,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+}) {
   return (
     <div className="flex flex-col gap-1 px-5 py-4">
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
       <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
         {value}
         {unit && <span className="ml-1 text-sm text-muted-foreground">{unit}</span>}
       </span>
+    </div>
+  );
+}
+
+function StatBand() {
+  const stats = useStats();
+  const d = stats.data;
+  const v = (s: string) => (d ? s : "—");
+  return (
+    <div className="border-t border-border bg-card">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-border sm:grid-cols-4">
+        <Stat label="Agents indexed" value={v(d ? formatCount(d.agentsIndexed) : "")} />
+        <Stat label="Reviews" value={v(d ? formatCount(d.feedbackSignals) : "")} />
+        <Stat
+          label="USDC escrowed"
+          value={v(d ? formatUsdc(d.usdcEscrowed * 1_000_000) : "")}
+          unit="USDC"
+        />
+        <Stat
+          label="Pfand returned"
+          value={v(d?.pfandReturnedPct == null ? "—" : d.pfandReturnedPct.toFixed(1))}
+          unit="%"
+        />
+      </div>
+    </div>
+  );
+}
+
+function Constellation() {
+  const { data, isLoading } = useNetwork(null);
+  return (
+    <div className="relative w-full">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft-lg">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-signal-ink">
+            Trust constellation
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            human root · review &amp; payment edges
+          </span>
+        </div>
+        <div className="p-3">
+          {isLoading || !data ? (
+            <Skeleton className="h-[420px] w-full rounded-xl" />
+          ) : (
+            <TrustGraph nodes={data.nodes} edges={data.edges} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -54,36 +128,37 @@ export default function Home() {
         {/* Hero */}
         <section className="relative overflow-hidden border-b border-border">
           <div className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-signal/10 blur-[120px]" />
-          <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
+          <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
             <div className="flex flex-col justify-center">
               <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground shadow-soft-sm animate-in fade-in slide-in-from-bottom-2 duration-700">
-                ERC-8004 · x402 · ENS
+                ERC-8004 · EigenTrust · x402 · ENS
               </div>
               <h1 className="font-display text-5xl font-extrabold leading-[0.98] tracking-[-0.035em] text-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-6xl lg:text-7xl">
-                Reputation you
+                Identity is
                 <br />
-                can&rsquo;t fake,
+                solved.
                 <br />
-                <span className="text-signal-ink">because someone paid.</span>
+                <span className="text-signal-ink">Trust isn&rsquo;t.</span>
                 <PfandCursor className="ml-2 h-[0.78em] w-[0.12em] align-[-0.08em]" />
               </h1>
               <p
                 className="mt-7 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-lg"
                 style={{ animationDelay: "120ms" }}
               >
-                Pfand is a brokerage layer for the on-chain agent economy. Every job escrows a refundable
-                deposit — your <span className="text-foreground">Pfand</span> — that the contract returns only when you
-                post honest feedback on-chain. Feedback becomes costly to fake and cryptographically tied to a real payment.
+                <span className="text-foreground">EigenTrust reputation for the agent economy.</span>{" "}
+                Pfand propagates one trust score from a human root through every
+                agent — weighted by real reviews and real payments. Each signal is
+                escrow-backed, so reputation is costly to fake and tied to a settled job.
               </p>
               <div
                 className="mt-9 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-700"
                 style={{ animationDelay: "220ms" }}
               >
                 <Link
-                  href="/demo"
+                  href="/network"
                   className="rounded-xl bg-signal px-5 py-2.5 font-mono text-sm font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
                 >
-                  Run the loop →
+                  See the trust graph →
                 </Link>
                 <Link
                   href="/explore"
@@ -94,24 +169,17 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Deposit receipt */}
+            {/* Constellation centerpiece */}
             <div
               className="flex items-center animate-in fade-in slide-in-from-bottom-4 duration-1000"
               style={{ animationDelay: "200ms" }}
             >
-              <DepositReceipt />
+              <Constellation />
             </div>
           </div>
 
-          {/* Stat band */}
-          <div className="border-t border-border bg-card">
-            <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-border sm:grid-cols-4">
-              <Stat label="Agents indexed" value="—" />
-              <Stat label="Feedback signals" value="—" />
-              <Stat label="USDC escrowed" value="—" unit="USDC" />
-              <Stat label="Pfand returned" value="—" unit="%" />
-            </div>
-          </div>
+          {/* Live stat band */}
+          <StatBand />
         </section>
 
         {/* The loop */}
@@ -167,69 +235,10 @@ export default function Home() {
             <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">/ Broker8004</span>
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
-            ETHGlobal New York 2026 — ERC-8004 discovery, payments &amp; payment-backed reputation
+            ETHGlobal New York 2026 — ERC-8004 discovery, payments &amp; EigenTrust reputation
           </span>
         </div>
       </footer>
     </>
-  );
-}
-
-function DepositReceipt() {
-  const rows = [
-    { k: "agent", v: "audit-sol.agent8004.eth", accent: false },
-    { k: "agentId", v: "#42", accent: false },
-    { k: "fee", v: "100.00 USDC", accent: false },
-    { k: "pfand (10%)", v: "10.00 USDC", accent: true },
-  ];
-  return (
-    <div className="relative w-full max-w-md">
-      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl border border-border bg-muted" />
-      <div className="relative rounded-2xl border border-border bg-card p-6 shadow-soft-lg">
-        <div className="flex items-center justify-between border-b border-dashed border-border pb-4">
-          <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
-            Deposit Receipt
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">job #1138</span>
-        </div>
-        <dl className="space-y-2.5 py-4">
-          {rows.map((r) => (
-            <div key={r.k} className="flex items-center justify-between gap-4">
-              <dt className="font-mono text-xs text-muted-foreground">{r.k}</dt>
-              <dd
-                className={cn(
-                  "truncate font-mono text-xs",
-                  r.accent ? "font-semibold text-signal-ink" : "text-foreground",
-                )}
-              >
-                {r.v}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <div className="space-y-2 border-t border-dashed border-border pt-4">
-          <StateRow label="Fee → service agent" state="released" />
-          <StateRow label="Pfand deposit" state="held" />
-          <StateRow label="On feedback posted" state="returned" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StateRow({ label, state }: { label: string; state: "released" | "held" | "returned" }) {
-  const map = {
-    released: { c: "text-muted-foreground", dot: "bg-muted-foreground", t: "RELEASED" },
-    held: { c: "text-pfand-held", dot: "bg-pfand-held", t: "HELD" },
-    returned: { c: "text-pfand-returned", dot: "bg-pfand-returned", t: "RETURNABLE" },
-  }[state];
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 font-mono text-[10px] ${map.c}`}>
-        <span className={`size-1.5 rounded-full ${map.dot}`} />
-        {map.t}
-      </span>
-    </div>
   );
 }

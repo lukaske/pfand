@@ -68,8 +68,8 @@ export async function POST(req: Request) {
     {
       kind: "openJob",
       index: "03",
-      label: "Post Pfand bond",
-      detail: `RebateEscrow locks a ${pfand.toFixed(2)} USDC Pfand — the honesty bond, 10% of the fee. The fee itself never touches the escrow.`,
+      label: "Escrow Pfand",
+      detail: `RebateEscrow locks a ${pfand.toFixed(2)} USDC Pfand — the deposit that obliges you to review. It's 10% of the fee, and the fee itself never touches the escrow.`,
       tag: "RebateEscrow",
       txHash: tx(`${jobId}-open`),
       gasFree: false,
@@ -79,10 +79,10 @@ export async function POST(req: Request) {
     {
       kind: "giveFeedback",
       index: "04",
-      label: ok ? "Rate: success" : "Rate: fail",
+      label: ok ? "Sign review: 👍 success" : "Sign review: 👎 fail",
       detail: ok
-        ? "Client posts an on-chain NewFeedback signal (value 100, tag2=success) — cryptographically tied to this paid job."
-        : "Client posts an honest negative signal (value 0, tag2=fail) — still cryptographically tied to this paid job.",
+        ? "You post a 👍 sign review on-chain (value 100, tag2=success) — cryptographically tied to this job. This MINTS a positive edge in the TrustRank graph."
+        : "You post a 👎 sign review on-chain (value 0, tag2=fail) — cryptographically tied to this job. This MINTS a negative edge in the TrustRank graph.",
       tag: "ReputationRegistry",
       txHash: tx(`${jobId}-feedback`),
       gasFree: false,
@@ -92,8 +92,8 @@ export async function POST(req: Request) {
     {
       kind: "claimRebate",
       index: "05",
-      label: "Reclaim Pfand",
-      detail: `Fresh feedback verified on-chain → the ${pfand.toFixed(2)} USDC Pfand is returned in full. An honest rating refunds the bond — ${ok ? "positive" : "negative"} alike.`,
+      label: "Pfand returns",
+      detail: `Fresh review verified on-chain → the ${pfand.toFixed(2)} USDC Pfand is returned in full. The deposit refunds the moment you review — 👍 or 👎 alike.`,
       tag: "RebateEscrow",
       txHash: tx(`${jobId}-claim`),
       gasFree: false,

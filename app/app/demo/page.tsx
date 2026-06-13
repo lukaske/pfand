@@ -86,8 +86,8 @@ export default function DemoPage() {
         setActive(data.steps.length);
         setPhase("done");
         setRunning(false);
-        toast.success("Pfand returned in full", {
-          description: `Job #${data.receipt.jobId} settled · honest ${data.receipt.outcome} rating refunds the bond`,
+        toast.success("Trust edge minted · Pfand returned in full", {
+          description: `Job #${data.receipt.jobId} settled · your ${data.receipt.outcome} review is now a new edge in the TrustRank graph`,
         });
       }, data.steps.length * STEP_MS),
     );
@@ -111,52 +111,56 @@ export default function DemoPage() {
             The Pfand loop · live on Arc
           </p>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            One job. One deposit. Reputation you can&rsquo;t fake.
+            One job. One deposit. One new edge in the graph.
           </h1>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Watch an agent discover, pay gas-free over x402, escrow a refundable
-            Pfand, complete the job, post on-chain feedback, and reclaim the
-            deposit — end to end. An honest rating refunds the bond, positive or
-            negative.
+            You escrow a Pfand, use the agent, and leave a one-tap sign review —
+            that review <span className="text-foreground">mints a new edge</span>{" "}
+            in the TrustRank graph, and your deposit returns the moment you
+            review. Watch the loop discover, pay gas-free over x402, bond the
+            Pfand, post the on-chain review, and refund — end to end. The review
+            mints the edge whether you rate it 👍 or 👎.
           </p>
         </div>
 
-        {/* Outcome toggle — the rating the client will post on-chain. */}
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Honest rating
+        {/* Outcome toggle — the sign review the client mints as a trust edge. */}
+        <div className="mt-8 flex flex-col items-center gap-2.5">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-signal-ink">
+            Your sign review — pick the edge to mint
           </span>
-          <div className="inline-flex items-center rounded-xl border border-border bg-card p-1 shadow-soft-sm">
+          <div className="inline-flex items-center rounded-xl border-[1.5px] border-signal/30 bg-card p-1.5 shadow-soft-md">
             <button
               type="button"
               onClick={() => setOutcome("success")}
               disabled={running}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-mono text-xs transition-colors disabled:opacity-50",
+                "inline-flex h-10 items-center gap-2 rounded-lg px-5 font-mono text-sm font-semibold transition-colors disabled:opacity-50",
                 outcome === "success"
-                  ? "bg-pfand-returned/15 text-pfand-returned"
+                  ? "bg-pfand-returned/15 text-pfand-returned ring-1 ring-pfand-returned/40"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <ThumbsUp className="h-3.5 w-3.5" /> success
+              <ThumbsUp className="h-4 w-4" /> 👍 success
             </button>
             <button
               type="button"
               onClick={() => setOutcome("fail")}
               disabled={running}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-mono text-xs transition-colors disabled:opacity-50",
+                "inline-flex h-10 items-center gap-2 rounded-lg px-5 font-mono text-sm font-semibold transition-colors disabled:opacity-50",
                 outcome === "fail"
-                  ? "bg-pfand-forfeited/15 text-pfand-forfeited"
+                  ? "bg-pfand-forfeited/15 text-pfand-forfeited ring-1 ring-pfand-forfeited/40"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <ThumbsDown className="h-3.5 w-3.5" /> fail
+              <ThumbsDown className="h-4 w-4" /> 👎 fail
             </button>
           </div>
           <p className="font-mono text-[11px] text-muted-foreground">
-            Either way, the Pfand returns — the bond pays for an honest signal,
-            not a positive one.
+            {outcome === "success" ? "👍" : "👎"} mints a{" "}
+            {outcome === "success" ? "positive" : "negative"} trust edge — and
+            either way the Pfand returns. The bond pays for the edge, not for a
+            positive one.
           </p>
         </div>
 
@@ -351,7 +355,7 @@ function ReputationCard({
               tone,
             )}
           >
-            +1 {receipt.outcome} signal
+            +1 {receipt.outcome} edge
           </Badge>
         )}
       </div>
@@ -383,6 +387,18 @@ function ReputationCard({
           <span className="text-foreground">{receipt.ensName}</span>
         </div>
         <div className="flex items-center justify-between">
+          <span>trust-graph edge</span>
+          <span
+            className={cn(
+              "transition-colors duration-700",
+              done ? tone : "text-muted-foreground",
+            )}
+          >
+            {done ? `minted · ${receipt.outcome} ✓` : "pending review"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          {/* Pfand return is sentiment-neutral: it refunds on ANY fresh review. */}
           <span>pfand bond</span>
           <span
             className={cn(
