@@ -15,9 +15,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { config as loadEnv } from "dotenv";
-import { toEventSelector } from "viem";
+import { toEventSelector, decodeEventLog } from "viem";
 import {
   ERC8004_MAINNET,
+  reputationRegistryAbi,
+  scoreAgents,
   type Agent,
   type FeedbackEntry,
   type ActivityBucket,
@@ -47,6 +49,34 @@ const TOPIC_NEWFEEDBACK = toEventSelector(
 
 function loadSql(name: string): string {
   return readFileSync(join(SQL_DIR, name), "utf8");
+}
+
+// ---- NewFeedback string-tag decoding (viem) ---------------------------------
+// tag1/tag2 are dynamic strings ABI-encoded in `data`; feedback.sql returns the
+// raw `data` blob and we decode them here for full fidelity (per-task scoring).
+const NEWFEEDBACK_ABI = reputationRegistryAbi.filter(
+  (e) => e.type === "event" && e.name === "NewFeedback",
+);
+
+/** Decode tag1/tag2 from a NewFeedback `data` blob. Indexed args are unknown
+ *  here (we only need the non-indexed string tags), so feed placeholder topics. */
+function decodeFeedbackTags(rawData: string): { tag1: string; tag2: string } {
+  if (!rawData || rawData === "0x") return { tag1: "", tag2: "" };
+  try {
+    const { args } = decodeEventLog({
+      abi: NEWFEEDBACK_ABI,
+      data: rawData as `0x${string}`,
+      topics: [
+        TOPIC_NEWFEEDBACK,
+        ("0x" + "0".repeat(64)) as `0x${string}`,
+        ("0x" + "0".repeat(64)) as `0x${string}`,
+        ("0x" + "0".repeat(64)) as `0x${string}`,
+      ],
+    }) as unknown as { args: { tag1?: string; tag2?: string } };
+    return { tag1: args.tag1 ?? "", tag2: args.tag2 ?? "" };
+  } catch {
+    return { tag1: "", tag2: "" };
+  }
 }
 
 /** Substitute @named params into SQL for human-readable dry-run printing. */
@@ -174,6 +204,7 @@ interface RawLogRow {
   feedback_index?: number | string;
   value?: number | string;
   value_decimals?: number | string;
+  raw_data?: string;
   block_number?: number | string;
   block_timestamp?: { value: string } | string;
   transaction_hash?: string;
@@ -186,23 +217,54 @@ function tsToIso(ts: RawLogRow["block_timestamp"]): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-// ---- Reputation aggregation -------------------------------------------------
+// ---- Reputation aggregation (real TrustRank engine) -------------------------
 
-function aggregateReputation(feedback: FeedbackEntry[]): Map<string, Agent["reputation"]> {
-  const byAgent = new Map<string, { sum: number; n: number }>();
+/**
+ * Build per-agent reputation summaries by running the real EigenTrust engine
+ * (`scoreAgents` from @pfand/shared) over ALL feedback, then folding the average
+ * score in alongside the TrustRank percentile. Keyed by `${network}:${agentId}`.
+ *
+ * Replaces the old naive-average aggregation: the on-chain indexer now writes the
+ * same TrustRank the app surfaces, so /api/agents?sort=score is graph-based.
+ */
+function buildReputations(
+  feedback: FeedbackEntry[],
+  agents: Agent[],
+  nowMs = Date.now(),
+): Map<string, Agent["reputation"]> {
+  // Average score + count per agentId (for the human-readable score field).
+  const avgByAgent = new Map<string, { sum: number; n: number }>();
   for (const f of feedback) {
     if (f.isRevoked) continue;
-    const cur = byAgent.get(f.agentId) ?? { sum: 0, n: 0 };
+    const cur = avgByAgent.get(f.agentId) ?? { sum: 0, n: 0 };
     cur.sum += f.score;
     cur.n += 1;
-    byAgent.set(f.agentId, cur);
+    avgByAgent.set(f.agentId, cur);
   }
+
+  const scores = scoreAgents(feedback, agents, {
+    nowMs,
+    halfLifeDays: 180,
+    pfandBoost: 3,
+  });
+
   const out = new Map<string, Agent["reputation"]>();
-  for (const [agentId, { sum, n }] of byAgent) {
-    const avg = n > 0 ? sum / n : null;
-    // Normalize to 0..100. ERC-8004 scores here are 0..100-ish floats; clamp.
-    const norm = avg === null ? null : Math.max(0, Math.min(100, avg));
-    out.set(agentId, { count: n, score: avg, scoreNormalized: norm });
+  for (const a of agents) {
+    const avg = avgByAgent.get(a.agentId);
+    const n = avg?.n ?? 0;
+    const score = avg && n > 0 ? avg.sum / n : null;
+    const norm = score === null ? null : Math.max(0, Math.min(100, score));
+    const s = scores.get(`${a.network}:${a.agentId}`);
+    out.set(`${a.network}:${a.agentId}`, {
+      count: n,
+      score,
+      scoreNormalized: norm,
+      trustRank: s?.trustRank ?? null,
+      trustRankRaw: s?.trustRankRaw ?? null,
+      scoresByTask: s?.scoresByTask ?? [],
+      distinctClients: s?.distinctClients ?? 0,
+      topTask: s?.topTask ?? null,
+    });
   }
   return out;
 }
@@ -277,6 +339,7 @@ async function run(): Promise<void> {
   const feedback: FeedbackEntry[] = fbRows.map((r) => {
     const value = Number(r.value ?? 0);
     const decimals = Number(r.value_decimals ?? 0);
+    const { tag1, tag2 } = decodeFeedbackTags(String(r.raw_data ?? "0x"));
     return {
       agentId: String(r.agent_id),
       network: "mainnet" as const,
@@ -284,9 +347,9 @@ async function run(): Promise<void> {
       feedbackIndex: Number(r.feedback_index ?? 0),
       value,
       valueDecimals: decimals,
-      score: value / Math.pow(10, decimals),
-      tag1: "",
-      tag2: "",
+      score: decimals > 0 ? value / Math.pow(10, decimals) : value,
+      tag1,
+      tag2,
       feedbackURI: "",
       isRevoked: false,
       txHash: r.transaction_hash ?? null,
@@ -294,8 +357,6 @@ async function run(): Promise<void> {
       timestamp: tsToIso(r.block_timestamp),
     };
   });
-
-  const repByAgent = aggregateReputation(feedback);
 
   // Fetch agent cards (bounded concurrency).
   console.log("Fetching agent cards...");
@@ -309,7 +370,7 @@ async function run(): Promise<void> {
         const owner = String(r.owner ?? "");
         const agentURI = String(r.agent_uri ?? "");
         const card = await fetchAgentCard(agentURI);
-        const agent = cardToAgent(
+        return cardToAgent(
           agentId,
           owner,
           agentURI,
@@ -317,12 +378,18 @@ async function run(): Promise<void> {
           r.block_number != null ? Number(r.block_number) : null,
           tsToIso(r.block_timestamp),
         );
-        const rep = repByAgent.get(agentId);
-        if (rep) agent.reputation = rep;
-        return agent;
       }),
     );
     agents.push(...built);
+  }
+
+  // 2b. Run the real TrustRank engine over ALL feedback + agents, then attach
+  //     the per-agent reputation summaries (count/score + TrustRank percentile).
+  console.log("Scoring agents (EigenTrust TrustRank)...");
+  const repByAgent = buildReputations(feedback, agents);
+  for (const a of agents) {
+    const rep = repByAgent.get(`${a.network}:${a.agentId}`);
+    if (rep) a.reputation = rep;
   }
 
   // 3. Activity heatmap

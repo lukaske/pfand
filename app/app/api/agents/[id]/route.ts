@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
-import { getAgent, getFeedback } from "@/lib/seed";
+import { getAgent } from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const agent = getAgent(id);
-  if (!agent) {
+  const result = await getAgent(id);
+  if (!result) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
-  return NextResponse.json({ agent, feedback: getFeedback(id) });
+  return NextResponse.json(result);
 }

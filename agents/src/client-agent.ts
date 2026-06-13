@@ -28,8 +28,17 @@ export interface HireTarget {
   input: string;
   /** Feedback score 0..100 the buyer posts after the work. */
   score: number;
+  /** Honest outcome of the job. Defaults to success when score>=50. */
+  outcome?: "success" | "fail";
+  /** Task/skill being rated (tag1). Defaults to "audit". */
+  taskTag?: string;
   /** Seconds the client has to post feedback before pfand can be forfeited. */
   feedbackWindowSecs: bigint;
+}
+
+/** Resolve the honest outcome: explicit, else derived from the score. */
+function resolveOutcome(target: HireTarget): "success" | "fail" {
+  return target.outcome ?? (target.score >= 50 ? "success" : "fail");
 }
 
 export interface HireResult {
@@ -103,19 +112,23 @@ export async function runEscrowLifecycle(
   log.info("Pfand bond escrowed (held pending fresh feedback):");
   await escrow.logDepositState(opened.jobId);
 
-  // giveFeedback — fresh, on-chain ERC-8004 signal unlocks the pfand
+  // giveFeedback — fresh, on-chain ERC-8004 signal unlocks the pfand.
+  // The signal carries the TASK (tag1) and the binary OUTCOME (tag2): an honest
+  // rating — success OR fail — refunds the bond. value is the outcome as 100/0.
+  const outcome = resolveOutcome(target);
+  const taskTag = target.taskTag ?? "audit";
   const idxBefore = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
   res.txHashes.feedback = await escrow.giveFeedback({
     agentId: target.agentId,
-    value: BigInt(target.score),
+    value: outcome === "success" ? 100n : 0n,
     valueDecimals: 0,
-    tag1: "audit",
-    tag2: "pfand-demo",
+    tag1: taskTag,
+    tag2: outcome,
     endpoint: target.endpoint,
     feedbackURI: `pfand://job/${opened.jobId}/feedback`,
   });
   const idxAfter = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
-  log.ok(`Feedback posted (score ${target.score}/100), feedback index ${idxBefore} → ${idxAfter}.`);
+  log.ok(`Feedback posted (${taskTag} → ${outcome}, score ${target.score}/100), feedback index ${idxBefore} → ${idxAfter}.`);
 
   // claimRebate — returns the pfand iff fresh non-revoked feedback exists
   const claimable = await escrow.isRebateClaimable(opened.jobId);
@@ -165,6 +178,8 @@ function targetFromEnv(): HireTarget {
       optionalEnv("TARGET_INPUT") ??
       "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract Vault { mapping(address=>uint) bal; function withdraw() public { (bool ok,)=msg.sender.call{value:bal[msg.sender]}(\"\"); require(ok); bal[msg.sender]=0; } }",
     score: Number(optionalEnv("TARGET_SCORE") ?? "92"),
+    outcome: optionalEnv("TARGET_OUTCOME") as "success" | "fail" | undefined,
+    taskTag: optionalEnv("TARGET_TASK_TAG") ?? undefined,
     feedbackWindowSecs: BigInt(optionalEnv("FEEDBACK_WINDOW_SECS") ?? "86400"),
   };
 }
@@ -193,6 +208,8 @@ function targetFromEnv_safe(): HireTarget {
     feeUsdc: safe("TARGET_FEE_USDC", "0.05"),
     input: safe("TARGET_INPUT", "<solidity source>"),
     score: Number(safe("TARGET_SCORE", "92")),
+    outcome: optionalEnv("TARGET_OUTCOME") as "success" | "fail" | undefined,
+    taskTag: optionalEnv("TARGET_TASK_TAG") ?? undefined,
     feedbackWindowSecs: BigInt(safe("FEEDBACK_WINDOW_SECS", "86400")),
   };
 }

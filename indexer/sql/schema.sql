@@ -34,6 +34,12 @@ create table if not exists agents (
   reputation_count   integer     not null default 0,
   reputation_score   numeric,                              -- human float (avg), null if no feedback
   reputation_score_normalized numeric,                     -- 0..100, null if no feedback
+  -- EigenTrust TrustRank (computed by scoreAgents in @pfand/shared)
+  trustrank          numeric,                              -- 0..100 percentile, null if unrated
+  trustrank_raw      numeric,                              -- raw eigenvector value (tiny)
+  scores_by_task     jsonb       not null default '[]',    -- [{tag,score,count}] desc by score
+  distinct_clients   integer     not null default 0,       -- unique non-revoked raters
+  trustrank_updated_at timestamptz,                        -- when TrustRank was last recomputed
   created_at_block   bigint,
   created_at         timestamptz,
   -- hybrid search vector over name+description+skills+domains
@@ -42,9 +48,18 @@ create table if not exists agents (
   primary key (network, agent_id)
 );
 
+-- Idempotent migration for pre-existing `agents` tables (create table if not
+-- exists won't add the TrustRank columns to a table that already exists).
+alter table agents add column if not exists trustrank            numeric;
+alter table agents add column if not exists trustrank_raw        numeric;
+alter table agents add column if not exists scores_by_task       jsonb not null default '[]';
+alter table agents add column if not exists distinct_clients     integer not null default 0;
+alter table agents add column if not exists trustrank_updated_at timestamptz;
+
 create index if not exists agents_x402_idx       on agents (x402_support);
 create index if not exists agents_payable_idx     on agents (payable);
 create index if not exists agents_repscore_idx    on agents (reputation_score_normalized desc nulls last);
+create index if not exists agents_trustrank_idx   on agents (trustrank desc nulls last);
 create index if not exists agents_skills_gin      on agents using gin (skills);
 create index if not exists agents_name_trgm       on agents using gin (name gin_trgm_ops);
 -- ANN index for vector distance. ivfflat needs ANALYZE after bulk load.

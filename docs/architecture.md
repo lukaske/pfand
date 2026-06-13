@@ -61,12 +61,16 @@ flowchart TB
 
     subgraph INDEX["Index"]
         INGEST["indexer<br/>bigquery.ts + arc-listener.ts"]
-        SUPA[("Supabase<br/>agents · feedback · jobs<br/>+ pgvector")]
+        ENGINE["TrustRank engine<br/>packages/shared/trustrank.ts<br/>(EigenTrust + per-task)"]
+        SUPA[("Supabase<br/>agents · feedback · jobs<br/>trustrank · scores_by_task<br/>+ pgvector")]
     end
 
     subgraph VERCEL["Next.js app on Vercel — pfand.vercel.app"]
-        API["/api routes + React Query"]
+        CRON["/api/cron/recompute<br/>(Vercel Cron, every 3h,<br/>token-guarded, full re-scan)"]
+        API["/api routes + React Query<br/>(reads live DB, seed fallback)"]
         ENSGW["/api/ens<br/>CCIP-Read gateway<br/>ENSIP-25/26 records"]
+        BROKER["Broker8004 (agent8004.eth)<br/>NL search · Vertex/Gemini<br/>order by per-task TrustRank"]
+        NETWORK["/network<br/>d3-force trust constellation"]
         UI["Explore · Search · Agent · Demo"]
     end
 
@@ -77,20 +81,24 @@ flowchart TB
 
     ID8004 --> BQ
     REP8004 --> BQ
+    CRON -- "0 */3 * * * full re-scan" --> BQ
     BQ --> INGEST
     AID --> INGEST
     AREP --> INGEST
     ESCROW --> INGEST
-    INGEST --> SUPA
+    INGEST --> ENGINE
+    ENGINE -- "trustrank · scores_by_task" --> SUPA
 
     CLIENT -- "x402 pay fee (gas-free)" --> GATEWAYW
     GATEWAYW -- "batched settle (USDC)" --> SERVICE
     CLIENT -- "openJob (10% bond) / claimRebate" --> ESCROW
-    CLIENT -- "giveFeedback" --> AREP
+    CLIENT -- "giveFeedback(tag1=task, tag2=outcome)" --> AREP
     SERVICE -- "Claude-backed work" --> CLIENT
 
     SUPA --> API
     API --> UI
+    API --> BROKER
+    API --> NETWORK
     NAME --> RESOLVER
     RESOLVER -- "OffchainLookup (EIP-3668)" --> ENSGW
     ENSGW -- "signed records" --> RESOLVER
@@ -101,6 +109,56 @@ The resolver for `agent8004.eth` on Sepolia carries a CCIP-Read `url` pointing a
 `<agent>.agent8004.eth` is redirected (via `OffchainLookup`) to the hosted gateway, which serves
 signed ENSIP-25 (`agent-registration`) + ENSIP-26 (`agent-context`, `agent-endpoint`) records for
 real mainnet ERC-8004 agents.
+
+## Trust math & scoring pipeline
+
+Reputation is no longer a clamped average of raw feedback values (trivially gameable, task-blind).
+It is **TrustRank** — an EigenTrust / PageRank trust-flow over the feedback graph — computed by the
+pure, unit-tested engine in **`packages/shared/src/trustrank.ts`** (vendored at `app/lib/shared/`).
+Trust *flows*: feedback from an already-trusted party counts more than praise from an unknown wallet,
+each edge is weighted by `satisfaction · decay · pfandBoost`, and the engine is rerun per `tag1` task
+to answer "best at X." Full formulas, the Sybil-resistance argument, and every supporting quantity
+(`satisfaction`, `distinctClients`, `trustRankRaw` vs `trustRank`, unrated handling) live in
+**[`docs/metrics.md`](metrics.md)**.
+
+**Scheduled refresh (every ~3h).** Scores are recomputed on a schedule and persisted to our own
+Supabase DB; the app reads the live DB, with the static seed as the no-credentials fallback.
+
+```mermaid
+flowchart LR
+    CRON["Vercel Cron<br/>0 */3 * * *"] -->|"POST (token-guarded)"| ROUTE["/api/cron/recompute<br/>(Node runtime)"]
+    ROUTE -->|"full re-scan, no watermark"| BQ["BigQuery<br/>Registered · NewFeedback (0x8004…)"]
+    BQ -->|"idempotent upsert"| SUPA[("Supabase<br/>agents · feedback")]
+    SUPA -->|"load full feedback set"| ENG["TrustRank engine<br/>EigenTrust + per-task"]
+    ENG -->|"upsert trustrank · scores_by_task · trustrank_updated_at"| SUPA
+    SUPA -->|"live read (seed fallback)"| APP["/api/agents · /api/network · Broker8004 · stats"]
+    APP -->|"scores updated <relative time>"| UI["UI"]
+```
+
+- **Full re-scan, no watermark.** Each run re-queries BigQuery for *all* `Registered` / `NewFeedback`
+  events from the two `0x8004…` registries and idempotently upserts into Supabase — no incremental
+  state to get wrong, and a re-run can only converge to the same answer. ($1000 of Google credits make
+  per-run cost a non-issue; Arc events also stream live via the existing `arc-listener.ts`.)
+- **Same engine, two callers.** The scheduled pipeline (live BigQuery) and the offline seed generator
+  both call `trustrank.ts`, so DB-backed and seed-backed scores are computed identically.
+- **Credential-gated, not code-gated.** The cron *refreshing* needs GCP + Supabase creds; the engine
+  and live scoring work from the bundled seed **with no credentials** (the seed is engine-generated).
+
+## Broker8004 & the /network constellation
+
+Two new surfaces consume the per-task scores:
+
+- **Broker8004 (`agent8004.eth`)** — the NL front door (an upgrade of `/search`). A query like *"cheap
+  reliable Solidity auditor that takes x402"* goes through **Vertex AI (Gemini)** intent extraction
+  (`{ taskTag, skills, maxPrice, minTrust, requiresX402, … }`) with a **deterministic `extractFilters`
+  fallback** when no key is present (Vercel-safe). Results are filtered, then **ordered by per-task
+  TrustRank** (global TrustRank as fallback), with a one-line rationale per top result and a
+  **Hire on Arc** CTA. All LLM calls go through one `app/lib/llm.ts` Vertex wrapper.
+- **`/network`** — a force-directed **trust constellation** (`d3-force`, top ~120 rated agents):
+  bubble area ∝ `sqrt(trustRankRaw)`, color/cluster by dominant task (`topTask`), edges = agent→agent
+  trust flow (opacity ∝ weight). Hover → mini agent card; click → `/agent/[id]`; task-filter chips
+  re-cluster and re-size by per-task score. Served by `/api/network` (`{ nodes, edges }`),
+  client-side only (lazy-loaded with a skeleton, no SSR crash).
 
 ## The Pfand loop (sequence)
 
@@ -123,17 +181,23 @@ sequenceDiagram
     S-->>C: result
     C->>E: approve(pfand) + openJob(agentId, serviceWallet, fee, window)
     Note over E: escrows ONLY the 10% Pfand bond<br/>snapshots client's feedback index
-    C->>R: giveFeedback(agentId, score, …)
+    C->>R: giveFeedback(agentId, value=100/0, tag1=task, tag2=outcome)
     C->>E: claimRebate(jobId)
-    E->>R: getLastIndex > snapshot && !revoked
-    E-->>C: return Pfand ✅
-    R-->>I: NewFeedback indexed → score + ENS record update
+    E->>R: getLastIndex > snapshot && !revoked (sentiment-neutral)
+    E-->>C: return Pfand ✅ (success OR fail)
+    R-->>I: NewFeedback indexed → TrustRank + per-task score + ENS update
 ```
 
 If the client never posts fresh feedback before the deadline, anyone can call `forfeitPfand`, which
 sends the bond to the treasury. Feedback is therefore economically costly to skip and
 cryptographically tied to a real payment — the property that makes this index harder to fake than
 scraped feedback events.
+
+The success/fail rating posts `giveFeedback(value = success ? 100 : 0, tag1 = task, tag2 = outcome)`,
+and `claimRebate` refunds the bond on any *fresh* feedback **regardless of sentiment** — a "fail"
+refunds exactly like a "success." These Pfand-backed, task-tagged ratings become the
+**highest-weighted edges** (`pfandBoost ≈ 3×`) feeding the TrustRank engine, so the most
+economically-real feedback dominates the scores. See [`docs/metrics.md`](metrics.md).
 
 ## Why each prize is satisfied
 

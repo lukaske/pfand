@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { Agent, AgentNetwork } from "@pfand/shared";
-import { AGENTS } from "@/lib/seed";
+import { getAgents } from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type SortKey = "score" | "price" | "feedback" | "recent";
 
@@ -19,10 +22,12 @@ function sortAgents(list: Agent[], sort: SortKey): Agent[] {
       );
     case "score":
     default:
+      // Prefer EigenTrust TrustRank; fall back to the normalized average when an
+      // agent is unrated so the ordering stays stable.
       return arr.sort(
         (a, b) =>
-          (b.reputation.scoreNormalized ?? -1) -
-          (a.reputation.scoreNormalized ?? -1),
+          (b.reputation.trustRank ?? b.reputation.scoreNormalized ?? -1) -
+          (a.reputation.trustRank ?? a.reputation.scoreNormalized ?? -1),
       );
   }
 }
@@ -35,7 +40,9 @@ export async function GET(req: NextRequest) {
   const payable = sp.get("payable");
   const sort = (sp.get("sort") as SortKey | null) ?? "score";
 
-  let list = AGENTS.filter((a) => {
+  const all = await getAgents();
+
+  let list = all.filter((a) => {
     if (network && network !== "all" && a.network !== network) return false;
     if (skill && skill !== "all" && !a.skills.includes(skill)) return false;
     if (x402 === "true" && !a.x402Support) return false;

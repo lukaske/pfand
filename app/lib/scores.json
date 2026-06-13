@@ -1,0 +1,1678 @@
+{
+  "updatedAt": "2026-06-13T21:17:44.808Z",
+  "scores": {
+    "mainnet:1": {
+      "agentId": "1",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 5
+        }
+      ],
+      "distinctClients": 15,
+      "topTask": "quality"
+    },
+    "mainnet:6888": {
+      "agentId": "6888",
+      "network": "mainnet",
+      "trustRank": 80.7017543859649,
+      "trustRankRaw": 0.004110569054819666,
+      "scoresByTask": [
+        {
+          "tag": "reachable",
+          "score": 97.2972972972973,
+          "count": 4
+        },
+        {
+          "tag": "Fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "Helpful",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 5
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 3
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "reachable"
+    },
+    "mainnet:22721": {
+      "agentId": "22721",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [],
+      "distinctClients": 24,
+      "topTask": null
+    },
+    "mainnet:14645": {
+      "agentId": "14645",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 24,
+      "topTask": "quality"
+    },
+    "mainnet:13445": {
+      "agentId": "13445",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 16
+        }
+      ],
+      "distinctClients": 14,
+      "topTask": "quality"
+    },
+    "mainnet:10307": {
+      "agentId": "10307",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 3
+        }
+      ],
+      "distinctClients": 22,
+      "topTask": "quality"
+    },
+    "mainnet:22771": {
+      "agentId": "22771",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 22
+        }
+      ],
+      "distinctClients": 22,
+      "topTask": "health-check"
+    },
+    "mainnet:9382": {
+      "agentId": "9382",
+      "network": "mainnet",
+      "trustRank": 82.45614035087719,
+      "trustRankRaw": 0.004110584791334181,
+      "scoresByTask": [
+        {
+          "tag": "reachable",
+          "score": 100,
+          "count": 3
+        },
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 5
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 21,
+      "topTask": "reachable"
+    },
+    "mainnet:9380": {
+      "agentId": "9380",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "health-check"
+    },
+    "mainnet:22690": {
+      "agentId": "22690",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 5
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 14,
+      "topTask": "quality"
+    },
+    "mainnet:20014": {
+      "agentId": "20014",
+      "network": "mainnet",
+      "trustRank": 75.43859649122807,
+      "trustRankRaw": 0.0035062278642879,
+      "scoresByTask": [
+        {
+          "tag": "starred",
+          "score": 96.29629629629629,
+          "count": 17
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "starred"
+    },
+    "mainnet:25255": {
+      "agentId": "25255",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "Fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "Helpful",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 22,
+      "topTask": "Fast"
+    },
+    "mainnet:12267": {
+      "agentId": "12267",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 11
+        }
+      ],
+      "distinctClients": 17,
+      "topTask": "health-check"
+    },
+    "mainnet:12288": {
+      "agentId": "12288",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 10
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "fast"
+    },
+    "mainnet:22602": {
+      "agentId": "22602",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "good",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 5
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 13,
+      "topTask": "good"
+    },
+    "mainnet:22688": {
+      "agentId": "22688",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 3
+        }
+      ],
+      "distinctClients": 14,
+      "topTask": "quality"
+    },
+    "mainnet:12518": {
+      "agentId": "12518",
+      "network": "mainnet",
+      "trustRank": 89.47368421052632,
+      "trustRankRaw": 0.005931533046481914,
+      "scoresByTask": [
+        {
+          "tag": "fast",
+          "score": 100,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 92.5925925925926,
+          "count": 7
+        },
+        {
+          "tag": "Good",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "fast"
+    },
+    "mainnet:22669": {
+      "agentId": "22669",
+      "network": "mainnet",
+      "trustRank": 85.96491228070175,
+      "trustRankRaw": 0.005208972969643013,
+      "scoresByTask": [
+        {
+          "tag": "starred",
+          "score": 96.29629629629629,
+          "count": 5
+        },
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "health-check",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "starred"
+    },
+    "mainnet:6996": {
+      "agentId": "6996",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "Good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 8
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 5,
+      "topTask": "Good"
+    },
+    "mainnet:6817": {
+      "agentId": "6817",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "Fast",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "Good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "Fast"
+    },
+    "mainnet:12276": {
+      "agentId": "12276",
+      "network": "mainnet",
+      "trustRank": 84.21052631578947,
+      "trustRankRaw": 0.004987010033678469,
+      "scoresByTask": [
+        {
+          "tag": "starred",
+          "score": 88.88888888888889,
+          "count": 4
+        },
+        {
+          "tag": "fast",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "starred"
+    },
+    "mainnet:19837": {
+      "agentId": "19837",
+      "network": "mainnet",
+      "trustRank": 78.94736842105263,
+      "trustRankRaw": 0.00399324074274955,
+      "scoresByTask": [
+        {
+          "tag": "Good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "Good"
+    },
+    "mainnet:13026": {
+      "agentId": "13026",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 7,
+      "topTask": "quality"
+    },
+    "mainnet:9750": {
+      "agentId": "9750",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 10,
+      "topTask": "quality"
+    },
+    "mainnet:6940": {
+      "agentId": "6940",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "Good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 7,
+      "topTask": "Good"
+    },
+    "mainnet:9765": {
+      "agentId": "9765",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [],
+      "distinctClients": 8,
+      "topTask": null
+    },
+    "mainnet:13716": {
+      "agentId": "13716",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "Helpful",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "Helpful"
+    },
+    "mainnet:34135": {
+      "agentId": "34135",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 9
+        }
+      ],
+      "distinctClients": 7,
+      "topTask": "starred"
+    },
+    "mainnet:29058": {
+      "agentId": "29058",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 2,
+      "topTask": "responseTime"
+    },
+    "mainnet:13683": {
+      "agentId": "13683",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 8,
+      "topTask": "quality"
+    },
+    "mainnet:31875": {
+      "agentId": "31875",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 4
+        }
+      ],
+      "distinctClients": 7,
+      "topTask": "responseTime"
+    },
+    "mainnet:13446": {
+      "agentId": "13446",
+      "network": "mainnet",
+      "trustRank": 87.71929824561403,
+      "trustRankRaw": 0.005336538461538462,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 100,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 6,
+      "topTask": "quality"
+    },
+    "mainnet:10311": {
+      "agentId": "10311",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 5,
+      "topTask": "quality"
+    },
+    "mainnet:20019": {
+      "agentId": "20019",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 4,
+      "topTask": "quality"
+    },
+    "mainnet:14400": {
+      "agentId": "14400",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "review",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 7,
+      "topTask": "good"
+    },
+    "mainnet:13640": {
+      "agentId": "13640",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        }
+      ],
+      "distinctClients": 5,
+      "topTask": "helpful"
+    },
+    "mainnet:10303": {
+      "agentId": "10303",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 5,
+      "topTask": "quality"
+    },
+    "mainnet:15681": {
+      "agentId": "15681",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 6,
+      "topTask": "helpful"
+    },
+    "mainnet:22693": {
+      "agentId": "22693",
+      "network": "mainnet",
+      "trustRank": 77.19298245614034,
+      "trustRankRaw": 0.00395451244221447,
+      "scoresByTask": [
+        {
+          "tag": "good",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 4,
+      "topTask": "good"
+    },
+    "mainnet:13427": {
+      "agentId": "13427",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:13025": {
+      "agentId": "13025",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22673": {
+      "agentId": "22673",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:20018": {
+      "agentId": "20018",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22687": {
+      "agentId": "22687",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 4
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22987": {
+      "agentId": "22987",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "helpful",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 4,
+      "topTask": "helpful"
+    },
+    "mainnet:22999": {
+      "agentId": "22999",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22995": {
+      "agentId": "22995",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 2
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:23000": {
+      "agentId": "23000",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:19889": {
+      "agentId": "19889",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 4,
+      "topTask": "quality"
+    },
+    "mainnet:14495": {
+      "agentId": "14495",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22701": {
+      "agentId": "22701",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "mainnet:22628": {
+      "agentId": "22628",
+      "network": "mainnet",
+      "trustRank": 0,
+      "trustRankRaw": 0.0028846153846153848,
+      "scoresByTask": [
+        {
+          "tag": "quality",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "reachable",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "responseTime",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "starred",
+          "score": 0,
+          "count": 1
+        }
+      ],
+      "distinctClients": 3,
+      "topTask": "quality"
+    },
+    "arc:42": {
+      "agentId": "42",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 7
+        },
+        {
+          "tag": "value",
+          "score": 0,
+          "count": 2
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "accuracy"
+    },
+    "arc:7": {
+      "agentId": "7",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "value",
+          "score": 0,
+          "count": 3
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "accuracy"
+    },
+    "arc:128": {
+      "agentId": "128",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "value",
+          "score": 0,
+          "count": 4
+        }
+      ],
+      "distinctClients": 14,
+      "topTask": "accuracy"
+    },
+    "arc:999": {
+      "agentId": "999",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 5
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 5
+        }
+      ],
+      "distinctClients": 15,
+      "topTask": "accuracy"
+    },
+    "arc:256": {
+      "agentId": "256",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 1
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "value",
+          "score": 0,
+          "count": 6
+        }
+      ],
+      "distinctClients": 16,
+      "topTask": "accuracy"
+    },
+    "arc:88": {
+      "agentId": "88",
+      "network": "arc",
+      "trustRank": 91.22807017543859,
+      "trustRankRaw": 0.024999999999999998,
+      "scoresByTask": [
+        {
+          "tag": "accuracy",
+          "score": 0,
+          "count": 3
+        },
+        {
+          "tag": "latency",
+          "score": 0,
+          "count": 4
+        },
+        {
+          "tag": "reliability",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "ux",
+          "score": 0,
+          "count": 2
+        },
+        {
+          "tag": "value",
+          "score": 0,
+          "count": 4
+        }
+      ],
+      "distinctClients": 15,
+      "topTask": "accuracy"
+    }
+  }
+}

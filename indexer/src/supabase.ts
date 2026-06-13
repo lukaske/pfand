@@ -49,6 +49,13 @@ function agentToRow(a: Agent, embedding: string) {
     reputation_count: a.reputation.count,
     reputation_score: a.reputation.score,
     reputation_score_normalized: a.reputation.scoreNormalized,
+    // EigenTrust TrustRank (written when scoreAgents has run; null otherwise).
+    trustrank: a.reputation.trustRank ?? null,
+    trustrank_raw: a.reputation.trustRankRaw ?? null,
+    scores_by_task: a.reputation.scoresByTask ?? [],
+    distinct_clients: a.reputation.distinctClients ?? 0,
+    trustrank_updated_at:
+      a.reputation.trustRank != null ? new Date().toISOString() : null,
     created_at_block: a.createdAtBlock,
     created_at: a.createdAt,
     embedding,

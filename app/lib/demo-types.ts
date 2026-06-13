@@ -14,6 +14,15 @@ export type DemoStepKind =
   | "giveFeedback"
   | "claimRebate";
 
+/** Honest rating outcome the client posts on-chain. */
+export type DemoOutcome = "success" | "fail";
+
+/** Request body for /api/demo/run. */
+export interface DemoRunRequest {
+  /** Which way the client rates the job. Defaults to "success". */
+  outcome?: DemoOutcome;
+}
+
 /** Deposit lifecycle as the contract sees it. */
 export type DepositState = "none" | "held" | "returned" | "forfeited";
 
@@ -53,6 +62,8 @@ export interface DemoReceipt {
   /** reputation score before / after this job's feedback lands */
   scoreBefore: number;
   scoreAfter: number;
+  /** Honest outcome the client posted (success or fail). */
+  outcome: DemoOutcome;
 }
 
 export interface DemoRunResponse {

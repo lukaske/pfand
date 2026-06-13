@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { AGENTS } from "@/lib/seed";
-import { extractFilters, rankAgents } from "@/lib/search";
+import { broker } from "@/lib/broker";
+
+// Vertex AI SDK + EigenTrust scoring run server-side only.
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   let query = "";
@@ -11,8 +13,6 @@ export async function POST(req: Request) {
     // empty body → empty query
   }
 
-  const filters = extractFilters(query);
-  const results = rankAgents(AGENTS, filters);
-
-  return NextResponse.json({ query, filters, results });
+  const response = await broker(query);
+  return NextResponse.json(response);
 }

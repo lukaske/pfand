@@ -13,6 +13,49 @@ function isSearchResult(a: Agent | AgentSearchResult): a is AgentSearchResult {
   return "semanticScore" in a;
 }
 
+const CHART_VARS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
+] as const;
+
+/** Stable per-tag color from the chart palette. */
+export function taskColor(tag: string): string {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  return CHART_VARS[h % CHART_VARS.length];
+}
+
+/** Small top-task chip tinted by its tag's chart color. */
+export function TopTaskChip({
+  task,
+  className,
+}: {
+  task: string;
+  className?: string;
+}) {
+  const c = taskColor(task);
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1.5 border-border/60 bg-card font-mono text-[10px] text-foreground",
+        className,
+      )}
+      title={`Top task — ${task}`}
+    >
+      <span
+        className="size-1.5 rounded-full"
+        style={{ backgroundColor: c }}
+      />
+      {task}
+    </Badge>
+  );
+}
+
 export function AgentCard({
   agent,
   className,
@@ -73,9 +116,12 @@ export function AgentCard({
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <NetworkBadge network={agent.network} />
             <ReputationBadge reputation={agent.reputation} />
+            {agent.reputation.topTask && (
+              <TopTaskChip task={agent.reputation.topTask} />
+            )}
           </div>
           <span className="font-mono text-xs tabular-nums text-foreground">
             {agent.priceUsdc != null ? (

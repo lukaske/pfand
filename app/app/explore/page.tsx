@@ -7,7 +7,12 @@ import { SiteHeader } from "@/components/site-header";
 import { StatTile } from "@/components/stat-tile";
 import { Heatmap } from "@/components/heatmap";
 import { NetworkBadge } from "@/components/network-badge";
-import { ReputationBadge, scoreColor } from "@/components/reputation-badge";
+import {
+  ReputationBadge,
+  headlineScore,
+  scoreColor,
+} from "@/components/reputation-badge";
+import { TopTaskChip } from "@/components/agent-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +42,7 @@ import { ALL_SKILLS } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 
 const SORTS: { value: NonNullable<AgentFilters["sort"]>; label: string }[] = [
-  { value: "score", label: "Reputation" },
+  { value: "score", label: "TrustRank" },
   { value: "feedback", label: "Most feedback" },
   { value: "price", label: "Lowest price" },
   { value: "recent", label: "Newest" },
@@ -215,7 +220,10 @@ export default function ExplorePage() {
                     x402
                   </TableHead>
                   <TableHead className="font-mono text-[10px] uppercase tracking-wider">
-                    Reputation
+                    TrustRank
+                  </TableHead>
+                  <TableHead className="font-mono text-[10px] uppercase tracking-wider">
+                    Top task
                   </TableHead>
                   <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider">
                     Price
@@ -229,7 +237,7 @@ export default function ExplorePage() {
                 {agents.isLoading || !agents.data
                   ? [0, 1, 2, 3, 4].map((i) => (
                       <TableRow key={i}>
-                        <TableCell colSpan={6}>
+                        <TableCell colSpan={7}>
                           <Skeleton className="h-6 w-full" />
                         </TableCell>
                       </TableRow>
@@ -266,6 +274,15 @@ export default function ExplorePage() {
                         </TableCell>
                         <TableCell>
                           <ReputationBadge reputation={a.reputation} />
+                        </TableCell>
+                        <TableCell>
+                          {a.reputation.topTask ? (
+                            <TopTaskChip task={a.reputation.topTask} />
+                          ) : (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              —
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
                           {a.priceUsdc != null ? (
@@ -336,7 +353,7 @@ function ReputationTrend() {
         {agents.isLoading
           ? [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-6 w-full" />)
           : top.map((a) => {
-              const s = a.reputation.scoreNormalized ?? 0;
+              const s = headlineScore(a.reputation) ?? 0;
               return (
                 <Link
                   key={a.agentId}

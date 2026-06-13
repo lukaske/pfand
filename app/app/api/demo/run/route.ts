@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAgent } from "@/lib/seed";
-import type { DemoRunResponse, DemoStep } from "@/lib/demo-types";
+import type {
+  DemoOutcome,
+  DemoRunRequest,
+  DemoRunResponse,
+  DemoStep,
+} from "@/lib/demo-types";
 
 /** Stable demo tx hash generator (replace with real Arc receipts later). */
 function tx(seed: string): string {
@@ -12,16 +17,30 @@ function tx(seed: string): string {
 
 const CLIENT = "0x" + "a1c3".padEnd(40, "0");
 
-export async function POST() {
+export async function POST(req: Request) {
+  let outcome: DemoOutcome = "success";
+  try {
+    const body = (await req.json()) as DemoRunRequest;
+    if (body?.outcome === "fail" || body?.outcome === "success") {
+      outcome = body.outcome;
+    }
+  } catch {
+    // no/invalid body → default to "success"
+  }
+  const ok = outcome === "success";
+
   // Hero agent for the scripted loop.
   const agent = getAgent("42");
   const fee = agent?.priceUsdc ?? 100;
   const pfand = Number((fee * 0.1).toFixed(2));
   const jobId = String(1138 + Math.floor(Math.random() * 900));
   const ens = agent?.ensName ?? "audit-sol.agent8004.eth";
-  const scoreBefore = agent?.reputation.scoreNormalized ?? 95;
-  // honest feedback nudges the rolling score a hair.
-  const scoreAfter = Math.min(100, scoreBefore + 1);
+  const scoreBefore =
+    agent?.reputation.trustRank ?? agent?.reputation.scoreNormalized ?? 95;
+  // An honest signal nudges the rolling score: up on success, down on fail.
+  const scoreAfter = ok
+    ? Math.min(100, scoreBefore + 1)
+    : Math.max(0, scoreBefore - 1);
 
   const steps: DemoStep[] = [
     {
@@ -60,8 +79,10 @@ export async function POST() {
     {
       kind: "giveFeedback",
       index: "04",
-      label: "Give feedback",
-      detail: "Client posts an on-chain NewFeedback signal — cryptographically tied to this paid job.",
+      label: ok ? "Rate: success" : "Rate: fail",
+      detail: ok
+        ? "Client posts an on-chain NewFeedback signal (value 100, tag2=success) — cryptographically tied to this paid job."
+        : "Client posts an honest negative signal (value 0, tag2=fail) — still cryptographically tied to this paid job.",
       tag: "ReputationRegistry",
       txHash: tx(`${jobId}-feedback`),
       gasFree: false,
@@ -72,7 +93,7 @@ export async function POST() {
       kind: "claimRebate",
       index: "05",
       label: "Reclaim Pfand",
-      detail: `Fresh feedback verified on-chain → the ${pfand.toFixed(2)} USDC Pfand is returned in full.`,
+      detail: `Fresh feedback verified on-chain → the ${pfand.toFixed(2)} USDC Pfand is returned in full. An honest rating refunds the bond — ${ok ? "positive" : "negative"} alike.`,
       tag: "RebateEscrow",
       txHash: tx(`${jobId}-claim`),
       gasFree: false,
@@ -93,6 +114,7 @@ export async function POST() {
       pfandUsdc: pfand,
       scoreBefore,
       scoreAfter,
+      outcome,
     },
     steps,
   };

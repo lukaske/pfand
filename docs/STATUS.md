@@ -96,6 +96,19 @@ Gateway domain = 26.
 (`agentsIndexed: 44974`, `feedbackSignals: 4120`) and `totals` in
 `indexer/scripts/real-agents.cache.json`.
 
+**TrustRank scoring (replaces the average-score).** Reputation is now **TrustRank** — an
+EigenTrust / PageRank trust-flow over the feedback graph — computed by the pure,
+unit-tested engine in `packages/shared/src/trustrank.ts` (vendored at `app/lib/shared/`).
+Trust *flows* (a trusted party's feedback counts more), each edge is weighted by
+`satisfaction · decay · pfandBoost`, and the engine is rerun per `tag1` task for
+**per-task TrustRank** ("best auditor"). It is **Sybil-resistant** (a swarm of untrusted
+fake clients earns ~0 rank) and **task-aware**. Scores refresh every ~3h via
+**Vercel Cron → token-guarded `/api/cron/recompute`** (full BigQuery re-scan, no
+watermark) → engine → Supabase (`trustrank`, `scores_by_task`, `trustrank_updated_at`);
+the app reads the live DB with **seed fallback**. The cron *refreshing* is creds-gated
+(GCP + Supabase); the engine + live scoring work from the bundled (engine-generated) seed
+with **no credentials**. Full formulas + game-resistance: **[`docs/metrics.md`](metrics.md)**.
+
 **Real agents powering the explorer:** the BigQuery pull cached **1,702** real mainnet
 agents (`indexer/scripts/real-agents.cache.json`); the app's bundled `MAINNET_AGENTS`
 (`app/lib/seed.ts`) embeds **713** of those real agents (real `agentId` / owner / URI /
@@ -213,12 +226,17 @@ docs/             architecture.md, STATUS.md (this file), submissions/, design/
 ### `app/` — Next.js 16 frontend + live ENS gateway
 - **What:** the public app. Explorer, NL search, per-agent pages, scripted Pfand demo,
   and the deployed `/api/ens` CCIP-Read endpoint.
-- **Key files:** `app/page.tsx` (home), `app/explore/`, `app/search/`, `app/agent/`,
-  `app/demo/`, `app/api/{agents,search,stats,activity}/` (data), `app/api/demo/run/`
-  (scripted loop — **synthesized** tx hashes, not the live Arc receipts),
-  `app/api/ens/[...slug]/` (gateway), `lib/seed.ts` (713 real + 3 Arc agents),
-  `lib/ens/` (resolver), `lib/search.ts`, `lib/shared/` (**vendored copy** of
-  `@pfand/shared` so the app deploys to Vercel standalone).
+- **Key files:** `app/page.tsx` (home), `app/explore/` (leaderboard by TrustRank),
+  `app/search/` (**Broker8004** · `agent8004.eth` NL search), `app/network/`
+  (**trust constellation**, d3-force), `app/agent/`, `app/demo/`,
+  `app/api/{agents,search,stats,activity,network}/` (data),
+  `app/api/cron/recompute/` (Vercel Cron, token-guarded full re-scan → engine → DB),
+  `app/api/demo/run/` (scripted loop — **synthesized** tx hashes, not the live Arc
+  receipts), `app/api/ens/[...slug]/` (gateway), `lib/seed.ts` (713 real + 3 Arc agents),
+  `lib/db.ts` (live Supabase reader, seed fallback), `lib/broker.ts` + `lib/llm.ts`
+  (Vertex/Gemini intent extraction, deterministic fallback), `components/trust-graph.tsx`
+  (d3-force viz), `lib/ens/` (resolver), `lib/search.ts`, `lib/shared/` (**vendored copy**
+  of `@pfand/shared` so the app deploys to Vercel standalone).
 - **Run:** `npm run dev` (root) → `http://localhost:3000`. **No credentials needed** — the
   app renders entirely from `lib/seed.ts`.
 - **Env:** optional `NEXT_PUBLIC_SUPABASE_*` (falls back to seed); `ENS_GATEWAY_SIGNER_KEY`
@@ -322,6 +340,19 @@ hashes in §3a on https://testnet.arcscan.app.
 - ✅ 13 Foundry tests passing.
 - ✅ BigQuery pull of real mainnet ERC-8004 data (44,974 / 4,120); 713 real agents bundled
   into the app; explorer/search/agent pages live on Vercel.
+- ✅ **TrustRank scoring** (EigenTrust + per-task) replaces the average-score —
+  Sybil-resistant, task-aware, unit-tested in `packages/shared/src/trustrank.ts`; surfaced
+  on badges/cards/leaderboard. Math: [`docs/metrics.md`](metrics.md).
+- ✅ **`/network`** force-directed trust constellation (d3-force; bubbles ∝ TrustRank,
+  clustered/colored by task, edges = agent→agent trust flow).
+- ✅ **Broker8004** (`agent8004.eth`) NL search — Vertex/Gemini intent extraction ordered
+  by per-task TrustRank, with a deterministic no-key fallback (Vercel-safe).
+- ✅ **Recompute cron** (`/api/cron/recompute`, Vercel Cron `0 */3 * * *`): full BigQuery
+  re-scan → engine → Supabase; app reads live DB with seed fallback. *(Refreshing is
+  creds-gated; engine + live scoring run from the engine-generated seed with no creds.)*
+- ✅ **Rating loop** posts `giveFeedback(value=100/0, tag1=task, tag2=outcome)`;
+  `claimRebate` refunds the Pfand on *fresh* feedback **regardless of sentiment** — these
+  Pfand-backed edges get the `≈3×` weight in TrustRank.
 - ✅ ENS OffchainResolver deployed on Sepolia; `agent8004.eth` registered; live subnames
   (`story`, `gekko`) resolve ENSIP-25/26 records via CCIP-Read; `/api/ens` gateway served
   from the Vercel app.

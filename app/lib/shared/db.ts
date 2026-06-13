@@ -5,6 +5,13 @@
 
 export type AgentNetwork = "mainnet" | "arc";
 
+/** Per-task-category trust score for an agent (0–100 percentile within that task). */
+export interface TaskScore {
+  tag: string;
+  score: number;
+  count: number;
+}
+
 export interface ReputationSummary {
   /** Number of non-revoked feedback entries. */
   count: number;
@@ -12,6 +19,17 @@ export interface ReputationSummary {
   score: number | null;
   /** 0–100 normalized score for sorting/badges, null if no feedback. */
   scoreNormalized: number | null;
+  /** EigenTrust percentile rank (0–100) among all rated agents, null if unrated.
+   *  Optional so legacy/seed objects compile before the scoring pipeline fills it in. */
+  trustRank?: number | null;
+  /** Raw EigenTrust eigenvector value (tiny), for bubble area; null if unrated. */
+  trustRankRaw?: number | null;
+  /** Per-task trust scores, sorted desc by score. */
+  scoresByTask?: TaskScore[];
+  /** Count of unique clients that left non-revoked feedback. */
+  distinctClients?: number;
+  /** Highest-scoring task tag, or null if unrated. */
+  topTask?: string | null;
 }
 
 export interface Agent {
@@ -83,6 +101,10 @@ export interface AgentSearchResult extends Agent {
   matchReason: string | null;
   /** 0–1 semantic similarity within the filtered set, if hybrid search ran. */
   semanticScore: number | null;
+  /** EigenTrust percentile rank (0–100) among all rated agents, null if unrated. */
+  trustRank?: number | null;
+  /** Task-specific trust score (0–100) for the searched task, null if N/A. */
+  taskScore?: number | null;
 }
 
 /** Parsed structured filters the NL search extracts from a query. */

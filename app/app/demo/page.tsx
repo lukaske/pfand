@@ -1,16 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Check, Play, RefreshCw, Zap } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  Play,
+  RefreshCw,
+  ThumbsDown,
+  ThumbsUp,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { DepositReceipt } from "@/components/deposit-receipt";
 import { PfandCursor } from "@/components/pfand-cursor";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useDemoRun } from "@/lib/api";
 import type {
+  DemoOutcome,
   DemoReceipt,
+  DemoRunResponse,
   DemoStep,
   DepositState,
   FeeState,
@@ -23,7 +32,8 @@ type Phase = "idle" | "running" | "done";
 const STEP_MS = 1100;
 
 export default function DemoPage() {
-  const demo = useDemoRun();
+  const [running, setRunning] = useState(false);
+  const [outcome, setOutcome] = useState<DemoOutcome>("success");
   const [steps, setSteps] = useState<DemoStep[]>([]);
   const [receipt, setReceipt] = useState<DemoReceipt | null>(null);
   const [active, setActive] = useState(-1); // index currently executing
@@ -40,11 +50,28 @@ export default function DemoPage() {
   const run = useCallback(async () => {
     clearTimers();
     setPhase("running");
+    setRunning(true);
     setActive(-1);
     setSteps([]);
     setReceipt(null);
 
-    const data = await demo.mutateAsync();
+    let data: DemoRunResponse;
+    try {
+      const res = await fetch("/api/demo/run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ outcome }),
+      });
+      if (!res.ok) throw new Error(`demo run failed (${res.status})`);
+      data = (await res.json()) as DemoRunResponse;
+    } catch (err) {
+      setPhase("idle");
+      setRunning(false);
+      toast.error("Demo run failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+      return;
+    }
     setSteps(data.steps);
     setReceipt(data.receipt);
 
@@ -58,12 +85,13 @@ export default function DemoPage() {
       setTimeout(() => {
         setActive(data.steps.length);
         setPhase("done");
+        setRunning(false);
         toast.success("Pfand returned in full", {
-          description: `Job #${data.receipt.jobId} settled · reputation +1`,
+          description: `Job #${data.receipt.jobId} settled · honest ${data.receipt.outcome} rating refunds the bond`,
         });
       }, data.steps.length * STEP_MS),
     );
-  }, [demo]);
+  }, [outcome]);
 
   // Resolve the receipt state from the highest completed step.
   const completedThrough = Math.min(active, steps.length - 1);
@@ -88,12 +116,52 @@ export default function DemoPage() {
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Watch an agent discover, pay gas-free over x402, escrow a refundable
             Pfand, complete the job, post on-chain feedback, and reclaim the
-            deposit — end to end.
+            deposit — end to end. An honest rating refunds the bond, positive or
+            negative.
+          </p>
+        </div>
+
+        {/* Outcome toggle — the rating the client will post on-chain. */}
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Honest rating
+          </span>
+          <div className="inline-flex items-center rounded-xl border border-border bg-card p-1 shadow-soft-sm">
+            <button
+              type="button"
+              onClick={() => setOutcome("success")}
+              disabled={running}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-mono text-xs transition-colors disabled:opacity-50",
+                outcome === "success"
+                  ? "bg-pfand-returned/15 text-pfand-returned"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" /> success
+            </button>
+            <button
+              type="button"
+              onClick={() => setOutcome("fail")}
+              disabled={running}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-mono text-xs transition-colors disabled:opacity-50",
+                outcome === "fail"
+                  ? "bg-pfand-forfeited/15 text-pfand-forfeited"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" /> fail
+            </button>
+          </div>
+          <p className="font-mono text-[11px] text-muted-foreground">
+            Either way, the Pfand returns — the bond pays for an honest signal,
+            not a positive one.
           </p>
         </div>
 
         {/* Run controls */}
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <div className="mt-6 flex items-center justify-center gap-3">
           {phase === "idle" ? (
             <button
               type="button"
@@ -262,18 +330,28 @@ function ReputationCard({
   done: boolean;
 }) {
   const shown = done ? receipt.scoreAfter : receipt.scoreBefore;
+  const failed = receipt.outcome === "fail";
+  const tone = failed ? "text-pfand-forfeited" : "text-pfand-returned";
+  const bar = failed ? "bg-pfand-forfeited" : "bg-pfand-returned";
+  const border = failed
+    ? "border-pfand-forfeited/30"
+    : "border-pfand-returned/30";
   return (
     <Card className="gap-4 rounded-2xl p-5 shadow-soft-sm">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {receipt.agentName} reputation
+          {receipt.agentName} TrustRank
         </span>
         {done && (
           <Badge
             variant="outline"
-            className="gap-1 border-pfand-returned/30 font-mono text-[10px] text-pfand-returned"
+            className={cn(
+              "gap-1 font-mono text-[10px]",
+              border,
+              tone,
+            )}
           >
-            +1 signal
+            +1 {receipt.outcome} signal
           </Badge>
         )}
       </div>
@@ -281,7 +359,7 @@ function ReputationCard({
         <span
           className={cn(
             "font-mono text-4xl font-semibold tabular-nums transition-colors duration-700",
-            done ? "text-pfand-returned" : "text-foreground",
+            done ? tone : "text-foreground",
           )}
         >
           {shown}
@@ -292,7 +370,10 @@ function ReputationCard({
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-pfand-returned transition-all duration-1000"
+          className={cn(
+            "h-full rounded-full transition-all duration-1000",
+            bar,
+          )}
           style={{ width: `${shown}%` }}
         />
       </div>
@@ -302,11 +383,22 @@ function ReputationCard({
           <span className="text-foreground">{receipt.ensName}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span>agent-registration</span>
+          <span>pfand bond</span>
           <span
             className={cn(
               "transition-colors duration-700",
               done ? "text-pfand-returned" : "text-muted-foreground",
+            )}
+          >
+            {done ? "returned ✓" : "held"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>agent-registration</span>
+          <span
+            className={cn(
+              "transition-colors duration-700",
+              done ? tone : "text-muted-foreground",
             )}
           >
             {done ? "updated ✓" : "pending"}

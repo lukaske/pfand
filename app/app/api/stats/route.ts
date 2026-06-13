@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { STATS } from "@/lib/seed";
+import { getStats } from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(STATS);
+  const stats = await getStats();
+  return NextResponse.json(stats);
 }

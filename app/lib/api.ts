@@ -86,12 +86,57 @@ export interface SearchResponse {
   query: string;
   filters: SearchFilters;
   results: AgentSearchResult[];
+  /** Task category the broker detected from the NL query (powers per-task TrustRank ordering). */
+  detectedTask?: string | null;
+  /** How intent was parsed: Vertex/Gemini when available, else the deterministic fallback. */
+  source?: "vertex" | "deterministic";
 }
 
 export function useSearch() {
   return useMutation({
     mutationFn: (query: string) =>
       postJSON<SearchResponse>("/api/search", { query }),
+  });
+}
+
+/* ------------------------- trust network (bubble viz) -------------------- */
+
+/** One agent bubble in the /network trust constellation. */
+export interface NetworkNode {
+  id: string; // `${network}:${agentId}`
+  agentId: string;
+  network: "mainnet" | "arc";
+  name: string;
+  ensName: string | null;
+  trustRank: number | null; // 0–100, for label/sort
+  trustRankRaw: number | null; // raw eigenvector, for bubble area
+  topTask: string | null; // dominant task → cluster + color
+  taskScore?: number | null; // per-task score when a task filter is active
+}
+
+/** A directed trust-flow edge between two agent bubbles. */
+export interface NetworkEdge {
+  source: string; // node id
+  target: string; // node id
+  weight: number;
+}
+
+export interface NetworkResponse {
+  nodes: NetworkNode[];
+  edges: NetworkEdge[];
+  tasks: string[]; // available task categories for the filter chips
+  updatedAt: string | null; // trustrank_updated_at, for the "scores updated …" stamp
+}
+
+export function useNetwork(
+  task?: string | null,
+): UseQueryResult<NetworkResponse> {
+  return useQuery({
+    queryKey: ["network", task ?? "all"],
+    queryFn: () =>
+      getJSON<NetworkResponse>(
+        `/api/network${task ? `?task=${encodeURIComponent(task)}` : ""}`,
+      ),
   });
 }
 

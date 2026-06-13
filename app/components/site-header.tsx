@@ -4,7 +4,8 @@ import { PfandCursor } from "@/components/pfand-cursor";
 
 const NAV = [
   { href: "/explore", label: "Explore" },
-  { href: "/search", label: "Search" },
+  { href: "/network", label: "Network" },
+  { href: "/search", label: "Broker" },
   { href: "/demo", label: "Live Demo" },
 ];
 
