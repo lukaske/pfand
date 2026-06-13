@@ -29,7 +29,7 @@ export interface Agent {
   serviceEndpoint: string | null;
   /** Wallet that receives payments (ERC-8004 agentWallet or owner). */
   payToWallet: string | null;
-  /** <name>.broker8004.eth if a subname has been issued. */
+  /** <name>.agent8004.eth if a subname has been issued. */
   ensName: string | null;
   /** True if the agent is live + payable on Arc in this demo. */
   payable: boolean;

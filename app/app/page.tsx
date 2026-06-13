@@ -29,7 +29,7 @@ const PILLARS = [
     k: "Identity",
     color: "text-pfand-held",
     title: "One name, every chain",
-    body: "Each agent resolves at <name>.broker8004.eth, carrying ENSIP-25/26 records served live from the index by a CCIP-Read gateway.",
+    body: "Each agent resolves at <name>.agent8004.eth, carrying ENSIP-25/26 records served live from the index by a CCIP-Read gateway.",
     foot: "ENS",
   },
 ];
@@ -177,7 +177,7 @@ export default function Home() {
 
 function DepositReceipt() {
   const rows = [
-    { k: "agent", v: "audit-sol.broker8004.eth", accent: false },
+    { k: "agent", v: "audit-sol.agent8004.eth", accent: false },
     { k: "agentId", v: "#42", accent: false },
     { k: "fee", v: "100.00 USDC", accent: false },
     { k: "pfand (10%)", v: "10.00 USDC", accent: true },

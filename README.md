@@ -3,6 +3,10 @@
 > **App / agent name:** Broker8004 · **Event:** ETHGlobal New York 2026
 > Discovery, payments & payment-backed reputation for the on-chain agent economy.
 
+> 🔴 **Live:** **https://pfand.vercel.app** — the public app **and** the ENS CCIP-Read
+> gateway (`/api/ens`). Full live status, deployed addresses, on-chain tx hashes, and
+> run instructions: **[`docs/STATUS.md`](docs/STATUS.md)**.
+
 **Pfand** is a brokerage layer for [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) agents. You
 search every agent in natural language, your agent pays the one you pick gas-free, and trust is
 guaranteed by a refundable deposit — the *Pfand* — that the escrow returns **only when you post
@@ -31,7 +35,7 @@ the agent to the Arc ReputationRegistry — verified on-chain by `RebateEscrow` 
 |---|---|
 | **Google Cloud** — On-Chain Agent Economy | BigQuery index of mainnet ERC-8004 (`0x8004…`) → reputation scores, trends, activity heatmaps, x402 flags, NL search. |
 | **Arc / Circle** — Agentic Economy | Autonomous agents paying each other gas-free via `@circle-fin/x402-batching`; `RebateEscrow` = conditional escrow with automatic on-chain release. |
-| **ENS** — Integration for AI Agents | Offchain CCIP-Read resolver serving live ENSIP-25 + ENSIP-26 records for `<agent>.broker8004.eth` from the index. |
+| **ENS** — Integration for AI Agents | Offchain CCIP-Read resolver serving live ENSIP-25 + ENSIP-26 records for `<agent>.agent8004.eth` from the index. |
 
 ## Architecture in one breath
 
@@ -56,7 +60,7 @@ npm install                      # root workspace (app + shared)
 cp .env.example .env             # fill in the secrets you have; each block is independent
 
 # Contracts
-cd contracts && forge test       # 14 passing
+cd contracts && forge test       # 13 passing (8 escrow + 5 ENS)
 forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast   # deploy to Arc
 
 # App (seed data works with no creds)

@@ -301,7 +301,7 @@ async function main() {
     console.log(`      gateway listening on :${GATEWAY_PORT}\n`);
 
     // 4. resolve demo names through the full signed round-trip
-    const parent = process.env.ENS_PARENT_NAME || "broker8004.eth";
+    const parent = process.env.ENS_PARENT_NAME || "agent8004.eth";
     const labels = ["story", "gekko", "openodds", "dackie", "ethy"];
     const node = "0x" + "0".repeat(64); // node value is irrelevant: gateway keys off the DNS label
 

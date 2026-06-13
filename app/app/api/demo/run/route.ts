@@ -18,7 +18,7 @@ export async function POST() {
   const fee = agent?.priceUsdc ?? 100;
   const pfand = Number((fee * 0.1).toFixed(2));
   const jobId = String(1138 + Math.floor(Math.random() * 900));
-  const ens = agent?.ensName ?? "audit-sol.broker8004.eth";
+  const ens = agent?.ensName ?? "audit-sol.agent8004.eth";
   const scoreBefore = agent?.reputation.scoreNormalized ?? 95;
   // honest feedback nudges the rolling score a hair.
   const scoreAfter = Math.min(100, scoreBefore + 1);

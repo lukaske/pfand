@@ -1,11 +1,11 @@
 # Pfand ENS CCIP-Read Gateway
 
-Makes `<agent>.broker8004.eth` resolve to **live** ENSIP-25/26 records served from the Pfand
+Makes `<agent>.agent8004.eth` resolve to **live** ENSIP-25/26 records served from the Pfand
 index — with **no on-chain transaction per subname**. One parent name + one resolver covers
 every agent via ENSIP-10 wildcard resolution and EIP-3668 (CCIP-Read).
 
 ```
-viem getEnsText("alice.broker8004.eth", "agent-context")
+viem getEnsText("alice.agent8004.eth", "agent-context")
         │
         ▼
 OffchainResolver (Sepolia)  ──reverts──▶  OffchainLookup(url = this gateway)
@@ -62,7 +62,7 @@ npm run dev            # starts on :8080, prints the signer address
 
 The gateway prints the signer address on boot — that is your `SIGNER_ADDRESS`.
 
-## End-to-end demo: `alice.broker8004.eth` on Sepolia
+## End-to-end demo: `alice.agent8004.eth` on Sepolia
 
 ### 1. Generate the gateway signer
 ```bash
@@ -90,15 +90,15 @@ forge script script/DeployResolver.s.sol --rpc-url sepolia --broadcast
 ```
 
 ### 4. Point the parent name at the resolver
-Own `broker8004.eth` on Sepolia (register at https://app.ens.domains on the Sepolia testnet),
+Own `agent8004.eth` on Sepolia (register at https://app.ens.domains on the Sepolia testnet),
 then in the ENS Manager set its **resolver** to the deployed `OffchainResolver` address.
-Because the resolver implements ENSIP-10 wildcard, **every** `*.broker8004.eth` now resolves
+Because the resolver implements ENSIP-10 wildcard, **every** `*.agent8004.eth` now resolves
 through the gateway — no per-subname transaction.
 
 ### 5. Resolve it
 ```bash
 cd ../gateway
-# set ENS_PARENT_NAME=broker8004.eth, ENS_VERIFY_LABEL=alice, SEPOLIA_RPC_URL in .env
+# set ENS_PARENT_NAME=agent8004.eth, ENS_VERIFY_LABEL=alice, SEPOLIA_RPC_URL in .env
 npm run verify
 ```
 Expected output:
@@ -116,8 +116,8 @@ Or with raw viem in any app:
 import { createPublicClient, http, normalize } from "viem";
 import { sepolia } from "viem/chains";
 const client = createPublicClient({ chain: sepolia, transport: http(RPC) });
-await client.getEnsText({ name: normalize("alice.broker8004.eth"), key: "agent-context" });
-await client.getEnsAddress({ name: normalize("alice.broker8004.eth") });
+await client.getEnsText({ name: normalize("alice.agent8004.eth"), key: "agent-context" });
+await client.getEnsAddress({ name: normalize("alice.agent8004.eth") });
 ```
 
 ## ENSIP-25 / ENSIP-26 records served

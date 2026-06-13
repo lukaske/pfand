@@ -15,7 +15,7 @@ import "../src/ens/OffchainResolver.sol";
  * Run:
  *   forge script script/DeployResolver.s.sol --rpc-url sepolia --broadcast
  *
- * After deploy: set this contract as the resolver of broker8004.eth (the parent name) on Sepolia.
+ * After deploy: set this contract as the resolver of agent8004.eth (the parent name) on Sepolia.
  */
 contract DeployResolver is Script {
     function run() external {

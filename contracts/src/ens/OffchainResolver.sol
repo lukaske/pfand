@@ -24,7 +24,7 @@ abstract contract SupportsInterface {
 /**
  * @title OffchainResolver
  * @notice An ENS resolver that directs all queries to a CCIP-Read gateway (EIP-3668 + ENSIP-10).
- *         Lets `<agent>.broker8004.eth` resolve to live ENSIP-25/26 records served from our index
+ *         Lets `<agent>.agent8004.eth` resolve to live ENSIP-25/26 records served from our index
  *         with no on-chain transaction per subname.
  *
  * Forked from ensdomains/offchain-resolver, pinned to solc 0.8.19 / OZ v4.9.6.

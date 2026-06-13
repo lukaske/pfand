@@ -100,7 +100,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 
 // --- DNS name decoding (ENSIP-10 wire format) ---
 
-/** Decode a DNS wire-format name into dot-separated labels (e.g. "alice.broker8004.eth"). */
+/** Decode a DNS wire-format name into dot-separated labels (e.g. "alice.agent8004.eth"). */
 export function decodeDnsName(dnsName: Hex): string {
   const bytes = hexToBytes(dnsName);
   const labels: string[] = [];

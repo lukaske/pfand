@@ -35,7 +35,7 @@ CCIP-Read with a verifiable signature." This is the exact, ordered set of steps.
 
 ## Remaining go-live blocker: a parent name
 
-`broker8004.eth` is currently **unowned on Sepolia** (registry `owner()` == `0x0`). To go
+`agent8004.eth` is currently **unowned on Sepolia** (registry `owner()` == `0x0`). To go
 live you need to own a parent `.eth` name on Sepolia and point its resolver at our contract.
 
 ### Step 1 — Register a parent name on Sepolia (simplest: ENS web app)
@@ -43,7 +43,7 @@ live you need to own a parent `.eth` name on Sepolia and point its resolver at o
 1. Open the **Sepolia** ENS manager: <https://sepolia.app.ens.domains/>
 2. Connect the wallet for `0x2D97E75CA697007Fc7168571951314f19Cc0631b` (the deployer/signer;
    it currently holds ~0.20 Sepolia ETH — enough for registration + gas).
-3. Search a name (e.g. `broker8004.eth`, or any free name — call it `<PARENT>`), then
+3. Search a name (e.g. `agent8004.eth`, or any free name — call it `<PARENT>`), then
    **Register** it (two-tx commit/reveal; the UI walks you through it).
 4. After registration you own `<PARENT>` on Sepolia.
 
@@ -65,7 +65,7 @@ paste `0x163aC34292d9F17B4615FfD521Bc8753865455e2` → Save (one tx).
 **Via cast:**
 ```bash
 source <(grep -E '^(SEPOLIA_RPC_URL|SEPOLIA_PRIVATE_KEY)=' .env)
-PARENT_NAMEHASH=$(cast namehash <PARENT>)              # e.g. broker8004.eth
+PARENT_NAMEHASH=$(cast namehash <PARENT>)              # e.g. agent8004.eth
 cast send 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e \
   'setResolver(bytes32,address)' \
   "$PARENT_NAMEHASH" 0x163aC34292d9F17B4615FfD521Bc8753865455e2 \

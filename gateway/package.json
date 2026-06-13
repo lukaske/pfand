@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Pfand ENS CCIP-Read gateway — serves ENSIP-25/26 records for <agent>.broker8004.eth",
+  "description": "Pfand ENS CCIP-Read gateway — serves ENSIP-25/26 records for <agent>.agent8004.eth",
   "engines": {
     "node": ">=20"
   },

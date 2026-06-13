@@ -15,7 +15,7 @@ contract OffchainResolverTest is Test {
     uint256 internal badPk;
     address internal badSigner;
 
-    // DNS-encoded "alice.broker8004.eth": 5 alice 11 broker8004 3 eth 0
+    // DNS-encoded "alice.agent8004.eth": 5 alice 11 broker8004 3 eth 0
     bytes internal dnsName =
         hex"05616c69636500"; // placeholder, overwritten in setUp via _dnsEncode
 
@@ -27,7 +27,7 @@ contract OffchainResolverTest is Test {
         signers[0] = signer;
         resolver = new OffchainResolver(GATEWAY_URL, signers);
 
-        dnsName = _dnsEncode("alice.broker8004.eth");
+        dnsName = _dnsEncode("alice.agent8004.eth");
     }
 
     function test_SupportsExtendedResolverInterface() public {
@@ -39,7 +39,7 @@ contract OffchainResolverTest is Test {
     /// resolve() must always revert with OffchainLookup carrying the gateway URL + callData.
     function test_ResolveRevertsWithOffchainLookup() public {
         // text(node, "agent-context")
-        bytes32 node = keccak256("alice.broker8004.eth.node");
+        bytes32 node = keccak256("alice.agent8004.eth.node");
         bytes memory innerData =
             abi.encodeWithSelector(bytes4(keccak256("text(bytes32,string)")), node, "agent-context");
 
@@ -61,7 +61,7 @@ contract OffchainResolverTest is Test {
 
     /// resolveWithProof() returns the record for a correctly-signed response.
     function test_ResolveWithProof_ValidSigner() public {
-        bytes32 node = keccak256("alice.broker8004.eth.node");
+        bytes32 node = keccak256("alice.agent8004.eth.node");
         bytes memory innerData =
             abi.encodeWithSelector(bytes4(keccak256("text(bytes32,string)")), node, "agent-context");
 
@@ -83,7 +83,7 @@ contract OffchainResolverTest is Test {
 
     /// resolveWithProof() reverts when signed by an unregistered signer.
     function test_ResolveWithProof_BadSigner_Reverts() public {
-        bytes32 node = keccak256("alice.broker8004.eth.node");
+        bytes32 node = keccak256("alice.agent8004.eth.node");
         bytes memory innerData =
             abi.encodeWithSelector(bytes4(keccak256("addr(bytes32)")), node);
         bytes memory innerCallData =

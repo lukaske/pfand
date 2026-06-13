@@ -1,5 +1,5 @@
 /**
- * Pfand ENS record resolution for <agent>.broker8004.eth.
+ * Pfand ENS record resolution for <agent>.agent8004.eth.
  *
  * Produces ENSIP-25 (verifiable agent identity) and ENSIP-26 (native AI identity)
  * text records plus an address for a given subname label.
@@ -68,7 +68,7 @@ interface SeedAgent {
 }
 
 /**
- * Demo seed agents. Labels are the subname (the part before `.broker8004.eth`).
+ * Demo seed agents. Labels are the subname (the part before `.agent8004.eth`).
  *
  * These are REAL Ethereum-mainnet ERC-8004 agents pulled from `app/lib/seed.ts`
  * (BigQuery -> viem-decoded `Registered` / `NewFeedback` events on the canonical
@@ -206,7 +206,7 @@ export class SeedRecordSource implements AgentRecordSource {
 export const recordSource: AgentRecordSource = new SeedRecordSource();
 
 /**
- * Resolve the records for a subname label (e.g. "alice" for alice.broker8004.eth).
+ * Resolve the records for a subname label (e.g. "alice" for alice.agent8004.eth).
  * Returns null if the agent is unknown.
  */
 export async function resolveAgentRecords(label: string): Promise<AgentRecords | null> {
