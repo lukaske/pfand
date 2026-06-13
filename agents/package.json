@@ -8,6 +8,7 @@
     "service": "tsx src/service-agent.ts",
     "client": "tsx src/client-agent.ts",
     "seed": "tsx src/seed-agents.ts",
+    "deposit": "tsx src/deposit-gateway.ts",
     "loop": "tsx src/run-loop.ts",
     "loop:sim": "tsx src/run-loop.ts --sim",
     "typecheck": "tsc --noEmit"

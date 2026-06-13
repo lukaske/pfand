@@ -1,10 +1,9 @@
 import express, { type Request, type Response } from "express";
 import { getAddress } from "viem";
-import { optionalEnv, requireEnv, normalizePrivateKey } from "./lib/env.js";
-import { makeSellerGateway } from "./lib/x402.js";
+import { optionalEnv, requireEnv } from "./lib/env.js";
+import { makeSellerGateway, resolveSellerWalletEnv } from "./lib/x402.js";
 import { runAgentWork } from "./lib/claude.js";
 import { PERSONAS, type AgentPersona, buildRegistration } from "./lib/personas.js";
-import { privateKeyToAccount } from "viem/accounts";
 
 /**
  * x402 SELLER — an HTTP service agent.
@@ -24,12 +23,11 @@ import { privateKeyToAccount } from "viem/accounts";
  */
 
 function resolveSellerWallet(): `0x${string}` {
-  const explicit = optionalEnv("SERVICE_WALLET");
-  if (explicit) return getAddress(explicit);
-  // Derive from the signer key so a single funded key works out of the box.
-  const pk = optionalEnv("PRIVATE_KEY");
-  if (pk) return privateKeyToAccount(normalizePrivateKey(pk)).address;
-  throw new Error("Set SERVICE_WALLET (0x address) or PRIVATE_KEY so the seller has a payTo wallet.");
+  // The x402 seller (payTo) MUST be distinct from the buyer's PRIVATE_KEY
+  // address, or Circle Gateway rejects the payment as a `self_transfer`.
+  // resolveSellerWalletEnv honors SERVICE_WALLET and otherwise returns a fixed
+  // distinct demo seller wallet. (PRIVATE_KEY would collide with the buyer.)
+  return getAddress(resolveSellerWalletEnv());
 }
 
 function selectedPersonas(): AgentPersona[] {

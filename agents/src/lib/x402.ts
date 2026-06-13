@@ -27,6 +27,25 @@ export function gatewayFacilitatorUrl(): string {
 }
 
 /**
+ * Default SELLER wallet for the demo (the x402 `payTo`).
+ *
+ * CRITICAL: Circle Gateway rejects a payment whose `from` (buyer) equals `to`
+ * (seller) with `invalidReason: "self_transfer"`. The single-key demo would
+ * otherwise pay itself. So the seller must be a *distinct* address from the
+ * buyer's PRIVATE_KEY. This is a receive-only address — the seller never signs
+ * the x402 authorization and needs no gas or Gateway balance to receive — so a
+ * fixed demo address is sufficient. Override with `SERVICE_WALLET`.
+ */
+export const DEMO_SELLER_WALLET = "0xAA5eD292454400F6A321e2581Aa420ea79E07671" as const;
+
+export function resolveSellerWalletEnv(): `0x${string}` {
+  const explicit = optionalEnv("SERVICE_WALLET");
+  if (explicit) return explicit as `0x${string}`;
+  // Fall back to the distinct demo seller so x402 never self-transfers.
+  return DEMO_SELLER_WALLET;
+}
+
+/**
  * Build the seller-side x402 middleware factory. `gateway.require('$0.05')`
  * returns an Express-compatible middleware that 402s until the buyer presents a
  * valid Gateway-batched payment, then attaches `req.payment`.

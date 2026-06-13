@@ -6,6 +6,7 @@ import { identityRegistryAbi, loadArcDeployment } from "@pfand/shared";
 import { getArcClients } from "./lib/clients.js";
 import { env, requireEnv, optionalEnv, isSimMode } from "./lib/env.js";
 import { PERSONAS, SEED_PERSONA_KEYS, buildRegistration, type AgentPersona } from "./lib/personas.js";
+import { resolveSellerWalletEnv } from "./lib/x402.js";
 import { log } from "./lib/log.js";
 
 /**
@@ -99,7 +100,9 @@ export async function seedAgents(): Promise<SeededAgent[]> {
   const { account, publicClient, walletClient } = getArcClients();
   const deployment = loadArcDeployment(env);
   const registry = deployment.identityRegistry;
-  const serviceWallet = getAddress(optionalEnv("SERVICE_WALLET") ?? account.address);
+  // Use the same distinct seller wallet as the x402 seller (NOT the buyer/signer
+  // account, which would self-transfer in x402). Honors SERVICE_WALLET override.
+  const serviceWallet = getAddress(resolveSellerWalletEnv());
 
   log.step("seed", `Registering ${SEED_PERSONA_KEYS.length} agents in IdentityRegistry ${registry}`);
   log.detail("owner / signer", account.address);

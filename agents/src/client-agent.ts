@@ -2,6 +2,7 @@ import { getAddress } from "viem";
 import { getArcClients } from "./lib/clients.js";
 import { EscrowClient, loadEscrowAddresses } from "./lib/escrow.js";
 import { makeBuyerGateway, type PayResult } from "./lib/x402.js";
+import { ensureGatewayBalance } from "./deposit-gateway.js";
 import { requireEnv, optionalEnv, isSimMode } from "./lib/env.js";
 import { log, formatUsdc6, parseUsdc6 } from "./lib/log.js";
 
@@ -53,6 +54,12 @@ export async function payForService(
   const pk = requireEnv("PRIVATE_KEY");
   const rpcUrl = optionalEnv("ARC_RPC_URL");
   const gateway = makeBuyerGateway(pk, rpcUrl);
+
+  // Gas-free settlement requires a funded Gateway balance (the facilitator's
+  // /verify rejects an off-chain authorization from a depositor with 0 balance).
+  // This is a one-time on-chain deposit; idempotent, so it self-heals and is a
+  // no-op once funded.
+  await ensureGatewayBalance();
 
   log.info(`Paying ${endpoint} via Circle x402 (Gateway-batched, gas-free)…`);
   const result = await gateway.pay(endpoint, {
@@ -125,15 +132,26 @@ export async function runEscrowLifecycle(
   return res;
 }
 
-/** Full buyer flow: pay gas-free, then escrow lifecycle. */
+/** Full buyer flow: pay gas-free over x402, then run the on-chain Pfand bond loop. */
 export async function hireAgent(target: HireTarget): Promise<HireResult> {
-  const paid = await payForService(target.endpoint, target.input);
+  // x402 payment is best-effort: the Circle Gateway facilitator needs a funded
+  // Gateway balance (and possibly an API key). If it's not set up, we still run
+  // the on-chain Pfand bond loop, which is the part that proves the mechanic.
+  let paid: PayResult | null = null;
+  try {
+    paid = await payForService(target.endpoint, target.input);
+  } catch (err) {
+    log.warn(
+      `x402 payment unavailable (${err instanceof Error ? err.message : String(err)}). ` +
+        `Circle Gateway needs a funded balance / API key — proceeding with the on-chain Pfand bond loop.`,
+    );
+  }
 
   const { publicClient, walletClient } = getArcClients();
   const escrow = new EscrowClient(publicClient, walletClient, loadEscrowAddresses());
   const result = await runEscrowLifecycle(escrow, target);
   result.paid = paid;
-  result.txHashes.payment = paid.transaction;
+  if (paid) result.txHashes.payment = paid.transaction;
   return result;
 }
 

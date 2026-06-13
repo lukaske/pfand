@@ -41,7 +41,7 @@ transactional (our ERC-8004 registries + `RebateEscrow` + Circle nanopayments). 
 The Next.js app surfaces all of it. The ERC-8004 `agentId` joins everything.
 
 ```
-contracts/   Foundry — ERC-8004 (vendored CC0 reference) + RebateEscrow + ENS resolver  ✅ 14 tests
+contracts/   Foundry — ERC-8004 (vendored CC0 reference) + RebateEscrow + ENS resolver  ✅ 13 tests
 agents/      Node — client/service agents · Circle x402 nanopayments · Claude-backed work
 indexer/     Node — BigQuery + Arc listener → Supabase · schema + hybrid-search SQL
 gateway/     Node — ENS CCIP-Read gateway (ENSIP-25/26)

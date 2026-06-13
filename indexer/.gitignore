@@ -3,3 +3,7 @@ node_modules/
 .env.local
 *.log
 dist/
+
+# cached BigQuery pulls (real mainnet agents) — never commit
+scripts/real-agents.raw.json
+scripts/real-agents.cache.json

@@ -110,7 +110,7 @@ payment — the property that makes this index harder to fake than scraped feedb
 ## Repository layout
 
 ```
-contracts/   Foundry — ERC-8004 (vendored) + RebateEscrow + ENS OffchainResolver  (14 tests)
+contracts/   Foundry — ERC-8004 (vendored) + RebateEscrow + ENS OffchainResolver  (13 tests)
 agents/      Node — client/service agents, Circle x402 nanopayments, Claude work
 indexer/     Node — BigQuery + Arc listener → Supabase; schema + hybrid-search SQL
 gateway/     Node — ENS CCIP-Read gateway (ENSIP-25/26)

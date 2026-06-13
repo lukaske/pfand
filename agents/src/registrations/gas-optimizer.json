@@ -16,7 +16,7 @@
     "endpoint": "http://localhost:8402/optimize",
     "method": "POST",
     "priceUsdc": 0.03,
-    "payTo": "0x0000000000000000000000000000000000000001"
+    "payTo": "0xAA5eD292454400F6A321e2581Aa420ea79E07671"
   },
-  "payToWallet": "0x0000000000000000000000000000000000000001"
+  "payToWallet": "0xAA5eD292454400F6A321e2581Aa420ea79E07671"
 }
