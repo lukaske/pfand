@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/recompute",
-      "schedule": "0 */3 * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
