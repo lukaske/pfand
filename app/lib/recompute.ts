@@ -413,6 +413,23 @@ export async function recompute(): Promise<RecomputeSummary> {
     }
   }
 
+  // On-chain metadata (names, descriptions, URIs) can contain NUL bytes and lone
+  // surrogates that Postgres text/jsonb rejects ("unsupported Unicode escape
+  // sequence"). Scrub every string field deeply before upserting.
+  const scrubStr = (s: string): string =>
+    s.replace(/\u0000/g, "").replace(/[\uD800-\uDFFF]/g, "�");
+  const scrub = <T>(v: T): T => {
+    if (typeof v === "string") return scrubStr(v) as unknown as T;
+    if (Array.isArray(v)) return v.map(scrub) as unknown as T;
+    if (v && typeof v === "object") {
+      const o: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>))
+        o[k] = scrub(val);
+      return o as unknown as T;
+    }
+    return v;
+  };
+
   // Upsert agents (without embeddings — those are owned by the indexer path).
   const agentRows = agents.map((a) => ({
     network: a.network,
@@ -448,7 +465,7 @@ export async function recompute(): Promise<RecomputeSummary> {
     const chunk = agentRows.slice(i, i + BATCH);
     const { error } = await supabase
       .from("agents")
-      .upsert(chunk, { onConflict: "network,agent_id" });
+      .upsert(chunk.map(scrub), { onConflict: "network,agent_id" });
     if (error) throw new Error(`upsert agents: ${error.message}`);
     upserted += chunk.length;
   }
@@ -474,7 +491,7 @@ export async function recompute(): Promise<RecomputeSummary> {
     const chunk = fbUpsertRows.slice(i, i + BATCH);
     const { error } = await supabase
       .from("feedback")
-      .upsert(chunk, { onConflict: "network,agent_id,client,feedback_index" });
+      .upsert(chunk.map(scrub), { onConflict: "network,agent_id,client,feedback_index" });
     if (error) throw new Error(`upsert feedback: ${error.message}`);
   }
 
