@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@pfand/shared": ["./lib/shared/index.ts"]
     }
   },
   "include": [

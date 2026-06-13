@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
-  // Shared workspace package ships raw TS; let Next transpile it.
-  transpilePackages: ["@pfand/shared"],
-  // Pin the workspace root (avoids Next picking up an unrelated parent lockfile).
+  // @pfand/shared is vendored at lib/shared and aliased in tsconfig paths, so the
+  // app is self-contained (deployable without the monorepo workspace).
+  // Pin the workspace root so Next doesn't latch onto an unrelated parent lockfile.
   turbopack: {
     root: path.resolve(__dirname, ".."),
   },
