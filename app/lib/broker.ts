@@ -22,7 +22,7 @@ import type {
   SearchFilters,
 } from "@pfand/shared";
 import { extractFilters, rankAgents } from "@/lib/search";
-import { getScoredAgents, getScoredData } from "@/lib/scored";
+import { getAgents } from "@/lib/db";
 import { extractIntentLLM, rationale, type BrokerIntent } from "@/lib/llm";
 import type { SearchResponse } from "@/lib/api";
 
@@ -103,7 +103,14 @@ function templatedReason(
 
 export async function broker(query: string): Promise<SearchResponse> {
   const q = (query ?? "").toString();
-  const { tasks } = getScoredData();
+
+  // Candidate corpus (live DB when configured, else seed) + its task categories.
+  const candidates = await getAgents();
+  const vol = new Map<string, number>();
+  for (const a of candidates)
+    for (const t of a.reputation.scoresByTask ?? [])
+      vol.set(t.tag, (vol.get(t.tag) ?? 0) + t.count);
+  const tasks = [...vol.entries()].sort((x, y) => y[1] - x[1]).map(([t]) => t);
 
   // 1. Intent → filters + detectedTask + source.
   let filters: SearchFilters;
@@ -125,8 +132,7 @@ export async function broker(query: string): Promise<SearchResponse> {
     source = "deterministic";
   }
 
-  // 2. Hard filters + base ranking over the scored corpus.
-  const candidates = getScoredAgents();
+  // 2. Hard filters + base ranking over the candidate corpus.
   const ranked = rankAgents(candidates, filters);
 
   // 3. Re-order by per-task TrustRank (stable on ties via base semantic order).

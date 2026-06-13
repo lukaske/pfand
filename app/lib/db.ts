@@ -17,7 +17,6 @@
  *   getUpdatedAt() -> string | null    (trustrank_updated_at, for "scores updated …")
  */
 import {
-  scoreAgents,
   type Agent,
   type FeedbackEntry,
   type IndexStats,
@@ -25,7 +24,7 @@ import {
   type AgentNetwork,
   type TaskScore,
 } from "@pfand/shared";
-import { getScoredData, getScoredAgents } from "@/lib/scored";
+import { getScoredData, getScoredAgents, allFeedback } from "@/lib/scored";
 import {
   getAgent as getSeedAgent,
   getFeedback as getSeedFeedback,
@@ -167,23 +166,6 @@ const FEEDBACK_COLS =
 
 /* -------------------------- Supabase reads ------------------------------ */
 
-async function fetchAllAgents(): Promise<AgentDbRow[]> {
-  const client = await supa();
-  const out: AgentDbRow[] = [];
-  const PAGE = 1000;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await client
-      .from("agents")
-      .select(AGENT_COLS)
-      .range(from, from + PAGE - 1);
-    if (error) throw new Error(`agents read: ${error.message}`);
-    const rows = (data ?? []) as unknown as AgentDbRow[];
-    out.push(...rows);
-    if (rows.length < PAGE) break;
-  }
-  return out;
-}
-
 async function fetchAllFeedback(): Promise<FeedbackDbRow[]> {
   const client = await supa();
   const out: FeedbackDbRow[] = [];
@@ -201,53 +183,43 @@ async function fetchAllFeedback(): Promise<FeedbackDbRow[]> {
   return out;
 }
 
-/**
- * Attach TrustRank to agents. If every agent already has a precomputed
- * `trustRank`, keep it; otherwise recompute over the supplied feedback so the
- * UI never shows a missing score.
- */
-function withScores(agents: Agent[], feedback: FeedbackEntry[]): Agent[] {
-  const anyRated = agents.some((a) => a.reputation.trustRank != null);
-  if (anyRated) return agents;
-  const scores = scoreAgents(feedback, agents, {
-    nowMs: Date.now(),
-    halfLifeDays: 180,
-    pfandBoost: 3,
-  });
-  return agents.map((a) => {
-    const s = scores.get(`${a.network}:${a.agentId}`);
-    if (!s) return a;
-    return {
-      ...a,
-      reputation: {
-        ...a.reputation,
-        trustRank: s.trustRank,
-        trustRankRaw: s.trustRankRaw,
-        scoresByTask: s.scoresByTask,
-        distinctClients: s.distinctClients,
-        topTask: s.topTask,
-      },
-    };
-  });
-}
-
 /* ------------------------------- public --------------------------------- */
 
-/** All agents, with reputation.trustRank populated. */
+/**
+ * Display agents: the real on-chain agents that have resolvable metadata
+ * (a name) — the others are bare NFTs with no card. Ordered by TrustRank,
+ * capped so the payload stays small. Scores are precomputed in the DB.
+ * Falls back to the seed corpus when Supabase isn't configured.
+ */
 export async function getAgents(): Promise<Agent[]> {
   if (!hasSupabase()) return getScoredAgents();
   try {
-    const [agentRows, feedbackRows] = await Promise.all([
-      fetchAllAgents(),
-      fetchAllFeedback(),
-    ]);
-    if (agentRows.length === 0) return getScoredAgents();
-    const agents = agentRows.map(rowToAgent);
-    const feedback = feedbackRows.map(rowToFeedback);
-    return withScores(agents, feedback);
+    const client = await supa();
+    const { data, error } = await client
+      .from("agents")
+      .select(AGENT_COLS)
+      .neq("name", "")
+      .not("name", "is", null)
+      .order("trustrank", { ascending: false, nullsFirst: false })
+      .limit(600);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as unknown as AgentDbRow[];
+    if (rows.length === 0) return getScoredAgents();
+    return rows.map(rowToAgent);
   } catch (err) {
     console.error("[db] getAgents fell back to seed:", err);
     return getScoredAgents();
+  }
+}
+
+/** All feedback entries (for building the trust-flow graph). Seed fallback. */
+export async function getAllFeedback(): Promise<FeedbackEntry[]> {
+  if (!hasSupabase()) return allFeedback();
+  try {
+    return (await fetchAllFeedback()).map(rowToFeedback);
+  } catch (err) {
+    console.error("[db] getAllFeedback fell back to seed:", err);
+    return allFeedback();
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { NetworkNode, NetworkEdge, NetworkResponse } from "@/lib/api";
-import { getScoredData, allFeedback } from "@/lib/scored";
+import { getAgents, getAllFeedback, getUpdatedAt } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +26,18 @@ function satisfaction(fb: {
 
 export async function GET(req: NextRequest) {
   const task = req.nextUrl.searchParams.get("task");
-  const { agents, tasks, updatedAt } = getScoredData();
+  const [agents, feedback, updatedAt] = await Promise.all([
+    getAgents(),
+    getAllFeedback(),
+    getUpdatedAt(),
+  ]);
+
+  // Task categories present, by total feedback volume (for the filter chips).
+  const vol = new Map<string, number>();
+  for (const a of agents)
+    for (const t of a.reputation.scoresByTask ?? [])
+      vol.set(t.tag, (vol.get(t.tag) ?? 0) + t.count);
+  const tasks = [...vol.entries()].sort((x, y) => y[1] - x[1]).map(([t]) => t);
 
   // --- nodes: rated agents, optionally restricted to a task category ---
   let rated = agents.filter((a) => a.reputation.trustRank != null);
@@ -75,7 +86,7 @@ export async function GET(req: NextRequest) {
 
   // Aggregate duplicate (source,target) pairs by summing weight.
   const agg = new Map<string, NetworkEdge>();
-  for (const fb of allFeedback()) {
+  for (const fb of feedback) {
     if (fb.isRevoked) continue;
     if (task && fb.tag1 !== task) continue;
 
