@@ -23,6 +23,7 @@ import {
   type Agent,
   type FeedbackEntry,
 } from "@pfand/shared";
+import { ensureGcpCredentials } from "./gcp-creds";
 
 // Canonical topic0 hashes (precomputed; avoids a viem dependency in the app).
 // keccak256("Registered(uint256,string,address)")
@@ -53,6 +54,7 @@ export interface RecomputeSummary {
 }
 
 function gcpReady(): { ok: boolean; project?: string } {
+  ensureGcpCredentials(); // materialize inline SA key (GCP_SA_KEY_B64) on serverless
   const project = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
   const creds = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   return { ok: Boolean(project && creds), project: project || undefined };

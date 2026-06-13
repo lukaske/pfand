@@ -19,6 +19,7 @@ import {
   type GenerateContentResult,
 } from "@google-cloud/vertexai";
 import type { Agent } from "@pfand/shared";
+import { ensureGcpCredentials } from "./gcp-creds";
 
 /** Structured intent the broker derives a SearchFilters + detectedTask from. */
 export interface BrokerIntent {
@@ -57,6 +58,7 @@ let _model: GenerativeModel | null | undefined;
 function getModel(): GenerativeModel | null {
   if (_model !== undefined) return _model;
   try {
+    ensureGcpCredentials(); // materialize inline SA key on serverless
     const project = projectId();
     if (!project) {
       _model = null;
