@@ -64,7 +64,7 @@ export default function ExplorePage() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">
         {/* Header */}
         <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">
             ERC-8004 Explorer
           </p>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -122,7 +122,7 @@ export default function ExplorePage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* Agents table */}
-          <Card className="order-2 gap-0 overflow-hidden p-0 lg:order-1">
+          <Card className="order-2 gap-0 overflow-hidden rounded-2xl p-0 shadow-soft-sm lg:order-1">
             {/* Filter bar */}
             <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
               <Filter className="h-4 w-4 text-muted-foreground" />
@@ -161,9 +161,9 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => patch({ x402: !filters.x402 })}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-xs transition-colors",
+                  "inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 font-mono text-xs transition-colors",
                   filters.x402
-                    ? "border-signal/40 bg-signal/10 text-signal"
+                    ? "border-transparent bg-signal-wash text-signal-ink"
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -174,7 +174,7 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => patch({ payable: !filters.payable })}
                 className={cn(
-                  "inline-flex h-8 items-center rounded-md border px-3 font-mono text-xs transition-colors",
+                  "inline-flex h-8 items-center rounded-xl border px-3 font-mono text-xs transition-colors",
                   filters.payable
                     ? "border-pfand-returned/40 bg-pfand-returned/10 text-pfand-returned"
                     : "border-border text-muted-foreground hover:text-foreground",
@@ -257,7 +257,7 @@ export default function ExplorePage() {
                         </TableCell>
                         <TableCell>
                           {a.x402Support ? (
-                            <Zap className="h-4 w-4 text-signal" />
+                            <Zap className="h-4 w-4 text-signal-ink" />
                           ) : (
                             <span className="font-mono text-xs text-muted-foreground">
                               —
@@ -302,12 +302,12 @@ export default function ExplorePage() {
 
           {/* Side rail: heatmap + trend */}
           <div className="order-1 flex flex-col gap-6 lg:order-2">
-            <Card className="gap-3 p-5">
+            <Card className="gap-3 rounded-2xl p-5 shadow-soft-sm">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Activity · 90d
                 </span>
-                <TrendingUp className="h-4 w-4 text-signal" />
+                <TrendingUp className="h-4 w-4 text-signal-ink" />
               </div>
               {activity.isLoading || !activity.data ? (
                 <Skeleton className="h-28 w-full" />
@@ -328,7 +328,7 @@ function ReputationTrend() {
   const agents = useAgents({ sort: "score" });
   const top = agents.data?.agents.slice(0, 5) ?? [];
   return (
-    <Card className="gap-3 p-5">
+    <Card className="gap-3 rounded-2xl p-5 shadow-soft-sm">
       <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         Reputation leaders
       </span>
@@ -343,7 +343,7 @@ function ReputationTrend() {
                   href={`/agent/${a.agentId}`}
                   className="group flex items-center gap-3"
                 >
-                  <span className="w-20 shrink-0 truncate font-mono text-xs text-foreground group-hover:text-signal">
+                  <span className="w-20 shrink-0 truncate font-mono text-xs text-foreground group-hover:text-signal-ink">
                     {a.name}
                   </span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">

@@ -57,17 +57,21 @@ export function DepositReceipt({
   const d = depositMeta(deposit);
 
   const rows = [
-    { k: "agent", v: receipt.ensName },
-    { k: "agentId", v: `#${receipt.agentId}` },
-    { k: "client", v: shortAddress(receipt.client) },
-    { k: "fee", v: `${formatUsdc(receipt.feeUsdc * 1_000_000)} USDC` },
-    { k: "pfand (10%)", v: `${formatUsdc(receipt.pfandUsdc * 1_000_000)} USDC` },
+    { k: "agent", v: receipt.ensName, accent: false },
+    { k: "agentId", v: `#${receipt.agentId}`, accent: false },
+    { k: "client", v: shortAddress(receipt.client), accent: false },
+    { k: "fee", v: `${formatUsdc(receipt.feeUsdc * 1_000_000)} USDC`, accent: false },
+    {
+      k: "pfand (10%)",
+      v: `${formatUsdc(receipt.pfandUsdc * 1_000_000)} USDC`,
+      accent: true,
+    },
   ];
 
   return (
     <div className={cn("relative w-full", className)}>
-      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl border border-border bg-card/40" />
-      <div className="relative rounded-xl border border-border bg-card p-6 shadow-2xl shadow-black/30">
+      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl border border-border bg-muted" />
+      <div className="relative rounded-2xl border border-border bg-card p-6 shadow-soft-lg">
         <div className="flex items-center justify-between border-b border-dashed border-border pb-4">
           <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
             Deposit Receipt
@@ -80,7 +84,14 @@ export function DepositReceipt({
           {rows.map((r) => (
             <div key={r.k} className="flex items-center justify-between gap-4">
               <dt className="font-mono text-xs text-muted-foreground">{r.k}</dt>
-              <dd className="truncate font-mono text-xs text-foreground">{r.v}</dd>
+              <dd
+                className={cn(
+                  "truncate font-mono text-xs",
+                  r.accent ? "font-semibold text-signal-ink" : "text-foreground",
+                )}
+              >
+                {r.v}
+              </dd>
             </div>
           ))}
         </dl>

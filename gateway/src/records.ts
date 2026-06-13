@@ -57,6 +57,7 @@ export function agentRegistrationKey(registry7930: `0x${string}`, agentId: strin
 
 /** One seed entry describing a demo agent. */
 interface SeedAgent {
+  /** addr(node) -> coin-type 60 (ETH) address. The real on-chain owner/payTo wallet. */
   addr: Address;
   /** ERC-8004 IdentityRegistry agentId this subname is the verified link for. */
   agentId: number;
@@ -68,31 +69,112 @@ interface SeedAgent {
 
 /**
  * Demo seed agents. Labels are the subname (the part before `.broker8004.eth`).
+ *
+ * These are REAL Ethereum-mainnet ERC-8004 agents pulled from `app/lib/seed.ts`
+ * (BigQuery -> viem-decoded `Registered` / `NewFeedback` events on the canonical
+ * IdentityRegistry 0x8004A169…). Real fields preserved: `agentId` (the on-chain
+ * registry id), `addr` (the agent's real owner/payTo wallet), and the live
+ * service endpoints from each agent's published ERC-8004 card. The ENSIP-25
+ * `agent-registration[...]` key therefore points at a genuinely-resolvable
+ * (registry, agentId) pair on Ethereum mainnet.
+ *
  * TODO(index): replace SeedRecordSource with a SupabaseRecordSource that reads the
  * `agents` table (packages/shared Agent type: agentId, owner, payToWallet, ensName,
- * serviceEndpoint, x402Support, ...) and synthesizes these records.
+ * serviceEndpoint, x402Support, ...) and synthesizes these records directly.
  */
 const SEED: Record<string, SeedAgent> = {
-  alice: {
-    addr: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    agentId: 42,
+  // Story Scoring Agent — mainnet ERC-8004 #14645 (106 verified feedback, score 87).
+  // Card: data:application/json (8004mint.com), MCP service published on-chain.
+  story: {
+    addr: "0xc468ff1b3c7043878422a272280e19f47127cc6c",
+    agentId: 14645,
     context:
-      "Pfand demo agent 'alice'. ERC-8004 trading agent indexed by broker8004.eth. " +
-      "Payment-backed reputation on Arc. Speaks MCP and A2A.",
+      "Story Scoring Agent (ERC-8004 #14645). Scores user stories (0-100); score >=60 grants " +
+      "one claim of 100 Story tokens. Pay 10 USDC to claim. Backed by 8004mint.com. " +
+      "106 verified on-chain feedback signals, reputation score 87/100.",
     endpoints: {
-      mcp: "https://alice.agents.pfand.xyz/mcp",
-      a2a: "https://alice.agents.pfand.xyz/.well-known/agent.json",
-      web: "https://pfand.xyz/agent/alice",
+      mcp: "https://8004mint.com/mcp",
+      web: "https://8004scan.app/agent/14645",
+    },
+  },
+
+  // Gekko AI — mainnet ERC-8004 #13445 (83 verified feedback, score 92).
+  gekko: {
+    addr: "0xb73ea3f24340f3b5d70e4ca57f84b53b88aba3a7",
+    agentId: 13445,
+    context:
+      "Gekko AI (ERC-8004 #13445). AI portfolio manager: trading strategies, DeFi yield " +
+      "optimization via Morpho vaults, and real-time market intelligence on Base. " +
+      "83 verified on-chain feedback signals, reputation score 92/100.",
+    endpoints: {
+      a2a: "https://gekkoterminal.xyz/.well-known/agent-card.json",
+      web: "https://gekkoterminal.xyz",
+    },
+  },
+
+  // OpenOdds.Ai — mainnet ERC-8004 #22771 (49 verified feedback, score 89).
+  openodds: {
+    addr: "0x0d68a153897b73a6e4d2eaa9b0d4802bae69532d",
+    agentId: 22771,
+    context:
+      "OpenOdds.Ai (ERC-8004 #22771). Verifiable pre-match football odds prediction for major " +
+      "European leagues: five-model consensus, xG context, on-chain commit-reveal records. " +
+      "49 verified on-chain feedback signals, reputation score 89/100.",
+    endpoints: {
+      a2a: "https://openodds.ai/.well-known/a2a-agent-card.json",
+      web: "https://openodds.ai",
+    },
+  },
+
+  // Captain Dackie — mainnet ERC-8004 #9382 (47 verified feedback, score 87, x402-enabled).
+  dackie: {
+    addr: "0x69f65af7f5a235909d8b249541d232b596fa379a",
+    agentId: 9382,
+    context:
+      "Captain Dackie (ERC-8004 #9382). DeFAI + x402 AI agent from Capminal. " +
+      "47 verified on-chain feedback signals, reputation score 87/100. x402-payable.",
+    endpoints: {
+      a2a: "https://app.virtuals.io/virtuals/23397",
+      web: "https://app.virtuals.io/virtuals/23397",
+    },
+  },
+
+  // Ethy AI — mainnet ERC-8004 #9380 (29 verified feedback, score 84, x402-enabled).
+  ethy: {
+    addr: "0xe0865ffca21a8f120a80997cbbdba8c92cac5697",
+    agentId: 9380,
+    context:
+      "Ethy AI (ERC-8004 #9380). Vibe trading agent: turns plain-language strategies into live " +
+      "24/7 automations. Built on A2A, powered by x402, secured by ERC-8004 reputation. " +
+      "29 verified on-chain feedback signals, reputation score 84/100. x402-payable.",
+    endpoints: {
+      a2a: "https://chat.ethyai.app/.well-known/a2a/agent.json",
+      web: "https://ethyai.app",
+    },
+  },
+
+  // `alice` / `bob` kept as stable demo aliases for the e2e/verify scripts and docs.
+  // They alias the two flagship real agents above so legacy references keep resolving.
+  alice: {
+    addr: "0xc468ff1b3c7043878422a272280e19f47127cc6c",
+    agentId: 14645,
+    context:
+      "Story Scoring Agent (ERC-8004 #14645), aliased as 'alice' for the Pfand demo. " +
+      "106 verified on-chain feedback signals, reputation score 87/100.",
+    endpoints: {
+      mcp: "https://8004mint.com/mcp",
+      web: "https://8004scan.app/agent/14645",
     },
   },
   bob: {
-    addr: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    agentId: 7,
+    addr: "0xb73ea3f24340f3b5d70e4ca57f84b53b88aba3a7",
+    agentId: 13445,
     context:
-      "Pfand demo agent 'bob'. ERC-8004 research/summarization agent. x402-payable on Arc Testnet.",
+      "Gekko AI (ERC-8004 #13445), aliased as 'bob' for the Pfand demo. " +
+      "83 verified on-chain feedback signals, reputation score 92/100.",
     endpoints: {
-      mcp: "https://bob.agents.pfand.xyz/mcp",
-      web: "https://pfand.xyz/agent/bob",
+      a2a: "https://gekkoterminal.xyz/.well-known/agent-card.json",
+      web: "https://gekkoterminal.xyz",
     },
   },
 };

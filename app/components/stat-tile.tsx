@@ -20,7 +20,7 @@ export function StatTile({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 rounded-xl border border-border bg-card px-5 py-4",
+        "flex flex-col gap-1.5 rounded-2xl border border-border bg-card px-5 py-4 shadow-soft-sm transition-colors hover:border-signal/40",
         className,
       )}
       style={style}

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          oklch(0.985 0.005 150);
+    --surface:     oklch(1 0 0);
+    --surface-2:   oklch(0.975 0.006 150);
+    --border:      oklch(0.915 0.006 150);
+    --border-soft: oklch(0.948 0.005 150);
+    --fg:          oklch(0.27 0.018 160);
+    --fg-muted:    oklch(0.505 0.015 160);
+    --fg-dim:      oklch(0.66 0.012 160);
+    --signal:      oklch(0.70 0.16 152);
+    --signal-ink:  oklch(0.46 0.13 152);
+    --on-signal:   oklch(0.99 0.02 152);
+    --signal-wash: oklch(0.95 0.045 152);
+    --c-green:  oklch(0.70 0.16 152);
+    --c-blue:   oklch(0.64 0.14 245);
+    --c-amber:  oklch(0.79 0.135 75);
+    --c-coral:  oklch(0.66 0.17 25);
+    --c-violet: oklch(0.60 0.16 300);
+    --c-teal:   oklch(0.72 0.11 195);
+    --held:      oklch(0.74 0.14 75);
+    --returned:  oklch(0.62 0.15 152);
+    --forfeited: oklch(0.60 0.18 25);
+    --shadow-sm: 0 1px 2px oklch(0.4 0.02 160 / 0.06), 0 1px 3px oklch(0.4 0.02 160 / 0.05);
+    --shadow-md: 0 4px 12px -2px oklch(0.4 0.02 160 / 0.08), 0 2px 6px -2px oklch(0.4 0.02 160 / 0.06);
+    --shadow-lg: 0 18px 40px -16px oklch(0.4 0.03 160 / 0.18), 0 6px 16px -8px oklch(0.4 0.02 160 / 0.10);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  ::selection { background: color-mix(in oklch, var(--signal) 24%, transparent); }
+  @keyframes ds-blink { 0%,48% { opacity: 1; } 49%,100% { opacity: 0; } }
+  @keyframes ds-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+</style>
+</helmet>
+<div style="background: var(--bg); color: var(--fg); font-family: 'Hanken Grotesk', system-ui, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased;">
+
+  <!-- top bar -->
+  <header style="position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); background: color-mix(in oklch, var(--bg) 80%, transparent); backdrop-filter: blur(12px);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 60px; display: flex; align-items: center; gap: 24px;">
+      <div style="display: flex; align-items: center; gap: 2px;">
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.03em; color: var(--fg);">Pfand</span>
+        <span style="width: 8px; height: 21px; background: var(--signal); border-radius: 2px; margin-left: 2px;"></span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--fg-dim); margin-left: 10px; align-self: center;">Design System</span>
+      </div>
+      <nav style="display: flex; align-items: center; gap: 2px; margin-left: 12px;">
+        <a href="#logo" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Logo</a>
+        <a href="#color" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Color</a>
+        <a href="#type" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Type</a>
+        <a href="#dataviz" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Data&nbsp;viz</a>
+        <a href="#components" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Components</a>
+        <a href="#tokens" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); text-decoration: none; padding: 6px 11px; border-radius: 8px;">Tokens</a>
+      </nav>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid color-mix(in oklch, var(--returned) 35%, var(--border)); border-radius: 999px; padding: 5px 11px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: var(--returned); background: var(--surface);">
+        <span style="width: 6px; height: 6px; border-radius: 999px; background: var(--returned);"></span>ARC TESTNET
+      </span>
+    </div>
+  </header>
+
+  <!-- hero -->
+  <section style="max-width: 1120px; margin: 0 auto; padding: 80px 28px 48px; position: relative;">
+    <div style="position: absolute; right: 40px; top: 60px; display: flex; gap: 10px; opacity: 0.9;">
+      <span style="width: 16px; height: 16px; border-radius: 999px; background: var(--c-blue); animation: ds-float 3s ease-in-out infinite;"></span>
+      <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--c-amber); animation: ds-float 3.4s ease-in-out infinite; align-self: flex-end;"></span>
+      <span style="width: 20px; height: 20px; border-radius: 999px; background: var(--c-coral); animation: ds-float 2.8s ease-in-out infinite;"></span>
+    </div>
+    <div style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-muted); margin-bottom: 28px; box-shadow: var(--shadow-sm);">SEARCH &amp; ANALYTICS · ERC-8004</div>
+    <h1 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 60px; line-height: 0.98; letter-spacing: -0.035em; margin: 0; max-width: 18ch; color: var(--fg);">Find the right agent.<br>Just start typing<span style="display: inline-block; width: 11px; height: 50px; background: var(--signal); border-radius: 3px; vertical-align: -7px; margin-left: 6px; animation: ds-blink 1.1s steps(1) infinite;"></span></h1>
+    <p style="margin: 26px 0 0; max-width: 64ch; font-size: 19px; line-height: 1.6; color: var(--fg-muted);">A bright, friendly system for Pfand&rsquo;s search &amp; analytics platform. Built around the <span style="color: var(--signal-ink); font-weight: 600;">prompt cursor</span> — the moment you start a search — with a light canvas tuned for dense charts and a warm, multi-color palette that stays legible at a glance.</p>
+  </section>
+
+  <!-- 01 LOGO -->
+  <section id="logo" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 36px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">01</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Logo &amp; cursor motif</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">The wordmark closes with a blinking caret — the search prompt, before you type. It&rsquo;s the brand&rsquo;s single recurring device: it ends the logo, marks every section, sits in the search field, and stands in for loaders and empty states.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <!-- primary -->
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 32px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 22px; justify-content: center;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim);">Primary wordmark</span>
+        <span style="display: inline-flex; align-items: center;">
+          <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -0.035em; color: var(--fg);">Pfand</span>
+          <span style="width: 9px; height: 30px; background: var(--signal); border-radius: 2px; margin-left: 4px;"></span>
+        </span>
+      </div>
+      <!-- on color -->
+      <div style="border: 1px solid var(--signal-ink); border-radius: 18px; background: var(--signal); padding: 32px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 22px; justify-content: center;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: color-mix(in oklch, var(--on-signal) 80%, transparent);">Reversed</span>
+        <span style="display: inline-flex; align-items: center;">
+          <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -0.035em; color: var(--on-signal);">Pfand</span>
+          <span style="width: 9px; height: 30px; background: var(--on-signal); border-radius: 2px; margin-left: 4px;"></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- icon family -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 26px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <span style="width: 60px; height: 60px; border-radius: 18px; background: var(--signal); display: inline-flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+          <span style="width: 9px; height: 30px; background: var(--on-signal); border-radius: 3px;"></span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);">App icon</span>
+      </div>
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 26px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <span style="width: 60px; height: 60px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center;">
+          <span style="display: inline-flex; align-items: center;"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.05em; color: var(--fg);">Pf</span><span style="width: 5px; height: 19px; background: var(--signal); border-radius: 1.5px; margin-left: 2px;"></span></span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);">Monogram</span>
+      </div>
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 26px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <span style="width: 60px; height: 60px; border-radius: 999px; background: var(--signal-wash); display: inline-flex; align-items: center; justify-content: center;">
+          <span style="width: 8px; height: 26px; background: var(--signal-ink); border-radius: 2px;"></span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);">Avatar / chip</span>
+      </div>
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 26px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <span style="width: 60px; height: 60px; border-radius: 18px; background: var(--fg); display: inline-flex; align-items: center; justify-content: center;">
+          <span style="width: 9px; height: 30px; background: var(--signal); border-radius: 3px;"></span>
+        </span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);">Mono / dark</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 COLOR -->
+  <section id="color" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 36px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">02</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Color</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">A warm off-white canvas (never pure white) keeps charts calm; the deep lime is the one brand color. Six harmonized chart hues — all near L 0.68, matched chroma — read as a friendly set, not a stoplight.</p>
+
+    <!-- neutrals -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Canvas &amp; ink</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 30px;">
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--bg);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Canvas</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">L .985</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--surface); border-bottom: 1px solid var(--border);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Surface</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">white</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--border);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Border</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">L .915</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--fg-muted);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Muted ink</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">L .505</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--fg);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Ink</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">L .27</div></div></div>
+    </div>
+
+    <!-- brand -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Brand · signal lime</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 30px;">
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--signal-wash);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Wash</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">tints / fills</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--signal);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Signal</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">.70 ·.16· 152</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 64px; background: var(--signal-ink);"></div><div style="padding: 10px 12px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Signal ink</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim); margin-top: 2px;">text-on-light</div></div></div>
+    </div>
+
+    <!-- chart palette -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Chart categorical · use in this order</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-green);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Green</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">primary</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-blue);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Blue</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">02</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-amber);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Amber</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">03</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-coral);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Coral</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">04</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-violet);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Violet</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">05</div></div></div>
+      <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);"><div style="height: 56px; background: var(--c-teal);"></div><div style="padding: 9px 11px; background: var(--surface);"><div style="font-size: 12px; font-weight: 600;">Teal</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--fg-dim);">06</div></div></div>
+    </div>
+
+    <!-- deposit semantics + ramp -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+      <div>
+        <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Deposit-state semantics</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; box-shadow: var(--shadow-sm);"><span style="width: 18px; height: 18px; border-radius: 6px; background: var(--returned);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg);">returned</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-left: auto;">deposit reclaimed</span></div>
+          <div style="display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; box-shadow: var(--shadow-sm);"><span style="width: 18px; height: 18px; border-radius: 6px; background: var(--held);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg);">held</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-left: auto;">in escrow</span></div>
+          <div style="display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; box-shadow: var(--shadow-sm);"><span style="width: 18px; height: 18px; border-radius: 6px; background: var(--forfeited);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg);">forfeited</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-left: auto;">deposit lost</span></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Sequential ramp · heatmaps</p>
+        <div style="display: flex; height: 44px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <span style="flex: 1; background: var(--signal-wash);"></span>
+          <span style="flex: 1; background: color-mix(in oklch, var(--signal) 35%, var(--surface));"></span>
+          <span style="flex: 1; background: color-mix(in oklch, var(--signal) 60%, var(--surface));"></span>
+          <span style="flex: 1; background: var(--signal);"></span>
+          <span style="flex: 1; background: var(--signal-ink);"></span>
+        </div>
+        <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin: 8px 0 0;">low &mdash;&mdash;&mdash;&mdash;&rarr; high activity</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 TYPE -->
+  <section id="type" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 36px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">03</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Type</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">Bricolage Grotesque brings the friendly, slightly quirky personality for the pitch; Hanken Grotesk keeps prose calm; JetBrains Mono carries every number, address and label.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px;">
+      <div style="border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); box-shadow: var(--shadow-sm);"><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal-ink); margin-bottom: 14px;">Display</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -0.03em; color: var(--fg);">Aa</div><div style="font-size: 13px; color: var(--fg-muted); margin-top: 14px;">Bricolage Grotesque</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 2px;">600 / 700 / 800</div></div>
+      <div style="border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); box-shadow: var(--shadow-sm);"><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal-ink); margin-bottom: 14px;">Body</div><div style="font-family: 'Hanken Grotesk', sans-serif; font-weight: 500; font-size: 44px; line-height: 1; color: var(--fg);">Aa</div><div style="font-size: 13px; color: var(--fg-muted); margin-top: 14px;">Hanken Grotesk</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 2px;">400 / 500 / 600</div></div>
+      <div style="border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); box-shadow: var(--shadow-sm);"><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal-ink); margin-bottom: 14px;">Mono</div><div style="font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 44px; line-height: 1; color: var(--fg);">Aa</div><div style="font-size: 13px; color: var(--fg-muted); margin-top: 14px;">JetBrains Mono</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 2px;">tnum · data &amp; labels</div></div>
+    </div>
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); overflow: hidden; box-shadow: var(--shadow-sm);">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border-soft);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 52px; line-height: 1; letter-spacing: -0.03em; color: var(--fg);">Just start typing</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); white-space: nowrap;">Display · 52–60</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border-soft);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; color: var(--fg);">Ranked by reputation</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); white-space: nowrap;">H2 · 30</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border-soft);"><span style="font-size: 18px; color: var(--fg-muted); max-width: 60ch;">Every job escrows a refundable deposit returned when you post honest feedback on-chain.</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); white-space: nowrap;">Body · 18</span></div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 24px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-muted);">AGENT · #42 · 100.00 USDC</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); white-space: nowrap;">Mono label · 11</span></div>
+    </div>
+  </section>
+
+  <!-- 04 DATA VIZ -->
+  <section id="dataviz" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 36px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">04</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Data visualization</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">The heart of the platform. Charts sit on white cards over the warm canvas, gridlines stay faint, and color does the talking. These are the house patterns to reuse everywhere.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+
+      <!-- line + area: feedback over time -->
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 22px; box-shadow: var(--shadow-sm); grid-column: 1 / -1;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; color: var(--fg);">Feedback signals</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim); margin-top: 2px;">last 30 days · on-chain NewFeedback events</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 6px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 600; color: var(--fg);">9,417</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--returned);">▲ 12%</span></div>
+        </div>
+        <svg viewBox="0 0 720 180" preserveAspectRatio="none" style="width: 100%; height: 180px; margin-top: 16px; display: block;">
+          <line x1="0" y1="45" x2="720" y2="45" stroke="oklch(0.915 0.006 150)" stroke-width="1"/>
+          <line x1="0" y1="90" x2="720" y2="90" stroke="oklch(0.915 0.006 150)" stroke-width="1"/>
+          <line x1="0" y1="135" x2="720" y2="135" stroke="oklch(0.915 0.006 150)" stroke-width="1"/>
+          <path d="M0,150 L60,140 L120,148 L180,120 L240,128 L300,96 L360,104 L420,72 L480,80 L540,52 L600,60 L660,34 L720,40 L720,180 L0,180 Z" fill="oklch(0.70 0.16 152 / 0.12)"/>
+          <path d="M0,150 L60,140 L120,148 L180,120 L240,128 L300,96 L360,104 L420,72 L480,80 L540,52 L600,60 L660,34 L720,40" fill="none" stroke="var(--signal)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="660" cy="34" r="5" fill="var(--surface)" stroke="var(--signal)" stroke-width="3"/>
+        </svg>
+      </div>
+
+      <!-- bar chart: by skill -->
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 22px; box-shadow: var(--shadow-sm);">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; color: var(--fg);">Agents by category</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim); margin-top: 2px;">indexed · top 5 skills</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); width: 84px; text-align: right;">audit</span><span style="height: 14px; width: 92%; background: var(--c-green); border-radius: 4px;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">412</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); width: 84px; text-align: right;">data-label</span><span style="height: 14px; width: 70%; background: var(--c-blue); border-radius: 4px;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">318</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); width: 84px; text-align: right;">rag</span><span style="height: 14px; width: 54%; background: var(--c-amber); border-radius: 4px;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">241</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); width: 84px; text-align: right;">image-gen</span><span style="height: 14px; width: 38%; background: var(--c-coral); border-radius: 4px;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">170</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); width: 84px; text-align: right;">trading</span><span style="height: 14px; width: 28%; background: var(--c-violet); border-radius: 4px;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">124</span></div>
+        </div>
+      </div>
+
+      <!-- donut: reputation score -->
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 22px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; color: var(--fg);">Deposit outcomes</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim); margin-top: 2px;">all-time · share of jobs</div>
+        <div style="display: flex; align-items: center; gap: 20px; margin-top: 16px;">
+          <svg viewBox="0 0 120 120" style="width: 112px; height: 112px; flex-shrink: 0;">
+            <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border)" stroke-width="16"/>
+            <circle cx="60" cy="60" r="46" fill="none" stroke="var(--returned)" stroke-width="16" stroke-dasharray="248 289" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+            <circle cx="60" cy="60" r="46" fill="none" stroke="var(--held)" stroke-width="16" stroke-dasharray="58 289" stroke-dashoffset="-248" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+            <text x="60" y="58" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; fill: var(--fg);">86%</text>
+            <text x="60" y="74" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 9px; fill: var(--fg-dim);">returned</text>
+          </svg>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--returned);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg);">returned 86%</span></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--held);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg);">held 9%</span></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--border);"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg);">forfeited 5%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- heatmap -->
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 22px; box-shadow: var(--shadow-sm); grid-column: 1 / -1;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; color: var(--fg);">Activity heatmap</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim); margin-top: 2px;">registrations + feedback · 12 weeks</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);">less<span style="width: 11px; height: 11px; border-radius: 3px; background: var(--signal-wash);"></span><span style="width: 11px; height: 11px; border-radius: 3px; background: color-mix(in oklch, var(--signal) 35%, var(--surface));"></span><span style="width: 11px; height: 11px; border-radius: 3px; background: color-mix(in oklch, var(--signal) 60%, var(--surface));"></span><span style="width: 11px; height: 11px; border-radius: 3px; background: var(--signal);"></span><span style="width: 11px; height: 11px; border-radius: 3px; background: var(--signal-ink);"></span>more</div>
+        </div>
+        <div id="ds-heatmap" style="display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 4px; margin-top: 18px;"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 05 COMPONENTS -->
+  <section id="components" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 36px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">05</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Components</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">Rounded, soft-shadowed, friendly. The search field leads — it carries the cursor and is the front door of the product.</p>
+
+    <!-- search bar hero -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;">Search field · the front door</p>
+    <div style="display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1.5px solid color-mix(in oklch, var(--signal) 45%, var(--border)); border-radius: 16px; padding: 16px 18px; box-shadow: 0 0 0 4px var(--signal-wash), var(--shadow-md); max-width: 640px; margin-bottom: 14px;">
+      <span style="width: 20px; height: 20px; border: 2.5px solid var(--fg-dim); border-radius: 999px; position: relative; flex-shrink: 0;"><span style="position: absolute; width: 7px; height: 2.5px; background: var(--fg-dim); border-radius: 2px; bottom: -2px; right: -4px; transform: rotate(45deg);"></span></span>
+      <span style="flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--fg);">cheap reliable solidity auditor that takes x402<span style="display: inline-block; width: 8px; height: 18px; background: var(--signal); border-radius: 2px; vertical-align: -3px; margin-left: 1px; animation: ds-blink 1.1s steps(1) infinite;"></span></span>
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; background: var(--signal); color: var(--on-signal); border: none; border-radius: 11px; padding: 10px 18px; cursor: pointer; white-space: nowrap;">search →</button>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 36px;">
+      <span style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-size: 13px; color: var(--fg-muted); box-shadow: var(--shadow-sm);"><span style="color: var(--signal);">✦</span>data labeling under $5 on Arc</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-size: 13px; color: var(--fg-muted); box-shadow: var(--shadow-sm);"><span style="color: var(--signal);">✦</span>high-quality rag retrieval</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-size: 13px; color: var(--fg-muted); box-shadow: var(--shadow-sm);"><span style="color: var(--signal);">✦</span>image generation I can hire now</span>
+    </div>
+
+    <!-- buttons -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;">Buttons</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 36px;">
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; background: var(--signal); color: var(--on-signal); border: none; border-radius: 11px; padding: 11px 20px; cursor: pointer; box-shadow: var(--shadow-sm); white-space: nowrap;">Run the loop →</button>
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--surface); color: var(--fg); border: 1px solid var(--border); border-radius: 11px; padding: 11px 20px; cursor: pointer; box-shadow: var(--shadow-sm);">Explore agents</button>
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--signal-wash); color: var(--signal-ink); border: none; border-radius: 11px; padding: 11px 20px; cursor: pointer;">Tonal</button>
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; background: transparent; color: var(--fg-muted); border: none; border-radius: 11px; padding: 11px 16px; cursor: pointer;">Ghost</button>
+      <button style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--forfeited); border: 1px solid color-mix(in oklch, var(--forfeited) 35%, var(--border)); border-radius: 11px; padding: 11px 20px; cursor: pointer;">Forfeit</button>
+    </div>
+
+    <!-- badges -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;">Badges &amp; chips</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 36px;">
+      <span style="display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--signal-ink); background: var(--signal-wash); border-radius: 999px; padding: 5px 11px;">⚡ x402</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--returned); border: 1px solid color-mix(in oklch, var(--returned) 35%, var(--border)); background: var(--surface); border-radius: 999px; padding: 5px 11px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--returned);"></span>RETURNABLE</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: color-mix(in oklch, var(--held) 70%, var(--fg)); border: 1px solid color-mix(in oklch, var(--held) 40%, var(--border)); background: var(--surface); border-radius: 999px; padding: 5px 11px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--held);"></span>HELD</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--forfeited); border: 1px solid color-mix(in oklch, var(--forfeited) 35%, var(--border)); background: var(--surface); border-radius: 999px; padding: 5px 11px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--forfeited);"></span>FORFEITED</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--returned); border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 11px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--returned);"></span>92 <span style="color: var(--fg-dim);">/ excellent</span></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-muted); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px;">solidity-audit</span>
+    </div>
+
+    <!-- cards -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;">Cards</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; margin-bottom: 36px; align-items: start;">
+      <!-- agent card -->
+      <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 22px; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; margin: 0; color: var(--fg);">Audit Solver</h3>
+              <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; color: var(--signal-ink); background: var(--signal-wash); border-radius: 999px; padding: 2px 8px;">⚡ x402</span>
+            </div>
+            <p style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-muted); margin: 5px 0 0;">audit-sol.broker8004.eth · #42</p>
+          </div>
+          <span style="color: var(--fg-dim); font-size: 16px;">↗</span>
+        </div>
+        <p style="font-size: 14px; line-height: 1.55; color: var(--fg-muted); margin: 14px 0 0;">Formal-verification pass over Solidity contracts with a written findings report and severity grading.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-muted); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 3px 8px;">solidity</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-muted); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 3px 8px;">security</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-muted); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 3px 8px;">formal-verif</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-soft);">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--returned); border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px;"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--returned);"></span>92</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--fg);">100.00 <span style="color: var(--fg-dim);">USDC</span></span>
+        </div>
+      </div>
+
+      <!-- stat tiles w/ sparkline -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 16px; box-shadow: var(--shadow-sm);">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-dim);">Agents</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; margin-top: 6px; color: var(--fg);">1,284</div>
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width: 100%; height: 22px; margin-top: 6px;"><path d="M0,18 L20,16 L40,10 L60,12 L80,5 L100,2" fill="none" stroke="var(--c-blue)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 16px; box-shadow: var(--shadow-sm);">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-dim);">Escrowed</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; margin-top: 6px; color: var(--signal-ink);">48.2k</div>
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width: 100%; height: 22px; margin-top: 6px;"><path d="M0,20 L20,15 L40,17 L60,9 L80,11 L100,3" fill="none" stroke="var(--signal)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 16px; box-shadow: var(--shadow-sm);">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-dim);">Signals</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; margin-top: 6px; color: var(--fg);">9,417</div>
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width: 100%; height: 22px; margin-top: 6px;"><path d="M0,16 L20,18 L40,12 L60,14 L80,8 L100,6" fill="none" stroke="var(--c-amber)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 16px; box-shadow: var(--shadow-sm);">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-dim);">Returned</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; margin-top: 6px; color: var(--returned);">86%</div>
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width: 100%; height: 22px; margin-top: 6px;"><path d="M0,12 L20,11 L40,13 L60,10 L80,9 L100,7" fill="none" stroke="var(--returned)" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- deposit receipt -->
+    <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;">Deposit receipt · signature surface</p>
+    <div style="border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 26px; box-shadow: var(--shadow-lg); max-width: 460px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px dashed var(--border);">
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--fg);">Deposit Receipt</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; color: var(--fg-dim);">job #1138</span>
+      </div>
+      <div style="padding: 16px 0; display: flex; flex-direction: column; gap: 11px;">
+        <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg-muted);">agent</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg);">audit-sol.broker8004.eth</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg-muted);">fee</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg);">100.00 USDC</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--fg-muted);">pfand (10%)</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--signal-ink); font-weight: 600;">10.00 USDC</span></div>
+      </div>
+      <div style="padding-top: 16px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 11px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;"><span style="font-size: 12px; color: var(--fg-muted);">Fee → service agent</span><span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim);"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--fg-dim);"></span>RELEASED</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;"><span style="font-size: 12px; color: var(--fg-muted);">Pfand deposit</span><span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: color-mix(in oklch, var(--held) 65%, var(--fg));"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--held);"></span>HELD</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;"><span style="font-size: 12px; color: var(--fg-muted);">On feedback posted</span><span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--returned);"><span style="width: 6px; height: 6px; border-radius: 999px; background: var(--returned);"></span>RETURNABLE</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 TOKENS -->
+  <section id="tokens" style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 96px; border-top: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <span style="width: 6px; height: 18px; background: var(--signal); border-radius: 2px;"></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal-ink);">06</span>
+      <h2 style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; color: var(--fg);">Radius, elevation &amp; motion</h2>
+    </div>
+    <p style="margin: 0 0 28px; color: var(--fg-muted); font-size: 15px; max-width: 70ch;">Generous radii and soft, neutral shadows give the friendly feel. Motion is gentle and purposeful — the blinking cursor, a subtle float on accent dots, quick ease on hover. Nothing bounces gratuitously.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+      <div>
+        <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Radius</p>
+        <div style="display: flex; gap: 14px; align-items: flex-end;">
+          <div style="text-align: center;"><div style="width: 60px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-sm);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">sm 8</div></div>
+          <div style="text-align: center;"><div style="width: 60px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">md 12</div></div>
+          <div style="text-align: center;"><div style="width: 60px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-sm);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">lg 18</div></div>
+          <div style="text-align: center;"><div style="width: 60px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; box-shadow: var(--shadow-sm);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">pill</div></div>
+        </div>
+      </div>
+      <div>
+        <p style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 12px;">Elevation</p>
+        <div style="display: flex; gap: 18px; align-items: flex-end;">
+          <div style="text-align: center;"><div style="width: 76px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-sm);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">sm</div></div>
+          <div style="text-align: center;"><div style="width: 76px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">md</div></div>
+          <div style="text-align: center;"><div style="width: 76px; height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg);"></div><div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); margin-top: 6px;">lg</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top: 1px solid var(--border); background: var(--surface);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 28px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+      <span style="display: inline-flex; align-items: center;"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; color: var(--fg);">Pfand</span><span style="width: 6px; height: 15px; background: var(--signal); border-radius: 2px; margin-left: 3px;"></span></span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);">Design system v2 · light · search &amp; analytics</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    const el = document.getElementById('ds-heatmap');
+    if (!el || el.childElementCount) return;
+    const wash = 'var(--signal-wash)';
+    const ramp = [
+      wash,
+      'color-mix(in oklch, var(--signal) 35%, var(--surface))',
+      'color-mix(in oklch, var(--signal) 60%, var(--surface))',
+      'var(--signal)',
+      'var(--signal-ink)'
+    ];
+    // 12 weeks x 7 days, gentle pseudo-random intensity with an upward trend
+    const weeks = 12, days = 7;
+    let html = '';
+    for (let w = 0; w < weeks; w++) {
+      for (let d = 0; d < days; d++) {
+        const trend = w / weeks;
+        const noise = (Math.sin(w * 2.3 + d * 1.7) + 1) / 2;
+        const intensity = Math.min(0.99, trend * 0.6 + noise * 0.5);
+        const idx = intensity < 0.12 ? -1 : Math.min(4, Math.floor(intensity * 5));
+        const bg = idx < 0 ? 'var(--surface-2)' : ramp[idx];
+        html += '<span style="width:15px;height:15px;border-radius:4px;background:' + bg + ';"></span>';
+      }
+    }
+    el.innerHTML = html;
+  }
+}
+</script>
+</body>
+</html>

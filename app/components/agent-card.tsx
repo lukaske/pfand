@@ -27,7 +27,7 @@ export function AgentCard({
   return (
     <Card
       className={cn(
-        "group gap-0 p-0 transition-colors hover:border-signal/40",
+        "group gap-0 rounded-2xl border border-border p-0 shadow-soft-sm transition-colors hover:border-signal/40",
         className,
       )}
       style={style}
@@ -42,7 +42,7 @@ export function AgentCard({
               {agent.x402Support && (
                 <Badge
                   variant="outline"
-                  className="gap-1 border-signal/30 font-mono text-[9px] uppercase tracking-wider text-signal"
+                  className="gap-1 border-transparent bg-signal-wash font-mono text-[9px] uppercase tracking-wider text-signal-ink"
                 >
                   <Zap className="h-2.5! w-2.5!" />
                   x402
@@ -53,7 +53,7 @@ export function AgentCard({
               {agent.ensName ?? shortAddress(agent.owner)} · #{agent.agentId}
             </p>
           </div>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-signal" />
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-signal-ink" />
         </div>
 
         <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
@@ -90,9 +90,9 @@ export function AgentCard({
         </div>
 
         {search && (
-          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-signal/15 bg-signal/[0.04] p-3">
+          <div className="mt-4 flex flex-col gap-2 rounded-xl border border-transparent bg-signal-wash p-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-signal">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-signal-ink">
                 match
               </span>
               <span className="font-mono text-[11px] tabular-nums text-foreground">
@@ -101,7 +101,7 @@ export function AgentCard({
             </div>
             <Progress
               value={(search.semanticScore ?? 0) * 100}
-              className="h-1 bg-signal/15 [&_[data-slot=progress-indicator]]:bg-signal"
+              className="h-1 bg-card [&_[data-slot=progress-indicator]]:bg-signal"
             />
             <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
               {search.matchReason}

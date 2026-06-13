@@ -11,6 +11,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "verify": "tsx src/verify.ts",
+    "e2e": "tsx src/e2e-local.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

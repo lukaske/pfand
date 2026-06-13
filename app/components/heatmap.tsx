@@ -4,17 +4,21 @@ import type { ActivityBucket } from "@pfand/shared";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-/** Map a 0..1 intensity to one of 5 chart-token tints via opacity. */
-function cell(intensity: number): { className: string; style: React.CSSProperties } {
-  if (intensity <= 0) {
-    return { className: "bg-muted/40", style: {} };
-  }
-  // signal-lime ramp; opacity carries the intensity for a calm gradient.
-  const op = 0.18 + intensity * 0.82;
-  return {
-    className: "bg-signal",
-    style: { opacity: Number(op.toFixed(2)) },
-  };
+/* Sequential lime ramp — matches the design system's #ds-heatmap mapping:
+   wash → signal mixed into card at 35/60% → signal → signal-ink. */
+const RAMP = [
+  "var(--signal-wash)",
+  "color-mix(in oklch, var(--signal) 35%, var(--card))",
+  "color-mix(in oklch, var(--signal) 60%, var(--card))",
+  "var(--signal)",
+  "var(--signal-ink)",
+] as const;
+
+/** Map a 0..1 intensity to one of the 5 discrete ramp stops. */
+function cellBackground(intensity: number): string {
+  if (intensity < 0.12) return "var(--muted)";
+  const idx = Math.min(4, Math.floor(intensity * 5));
+  return RAMP[idx];
 }
 
 export function Heatmap({
@@ -34,16 +38,12 @@ export function Heatmap({
       >
         {data.map((d) => {
           const total = d.feedback + d.registrations;
-          const c = cell(total / max);
           return (
             <Tooltip key={d.day}>
               <TooltipTrigger asChild>
                 <div
-                  className={cn(
-                    "size-3 rounded-[3px] transition-transform hover:scale-125",
-                    c.className,
-                  )}
-                  style={c.style}
+                  className="size-3 rounded-[3px] transition-transform hover:scale-125"
+                  style={{ background: cellBackground(total / max) }}
                 />
               </TooltipTrigger>
               <TooltipContent className="font-mono text-[11px]">
@@ -59,11 +59,10 @@ export function Heatmap({
       </div>
       <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
         <span>less</span>
-        <span className="size-3 rounded-[3px] bg-muted/40" />
-        <span className="size-3 rounded-[3px] bg-signal" style={{ opacity: 0.35 }} />
-        <span className="size-3 rounded-[3px] bg-signal" style={{ opacity: 0.6 }} />
-        <span className="size-3 rounded-[3px] bg-signal" style={{ opacity: 0.85 }} />
-        <span className="size-3 rounded-[3px] bg-signal" />
+        <span className="size-3 rounded-[3px]" style={{ background: "var(--muted)" }} />
+        {RAMP.map((bg) => (
+          <span key={bg} className="size-3 rounded-[3px]" style={{ background: bg }} />
+        ))}
         <span>more</span>
       </div>
     </div>

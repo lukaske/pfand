@@ -29,9 +29,21 @@ async function main() {
   const rpcUrl = process.env.SEPOLIA_RPC_URL;
   if (!rpcUrl) throw new Error("Missing SEPOLIA_RPC_URL");
 
-  const parent = process.env.ENS_PARENT_NAME ?? "broker8004.eth";
-  const label = process.env.ENS_VERIFY_LABEL ?? "alice";
+  const parent = process.env.ENS_PARENT_NAME || "broker8004.eth";
+  const label = process.env.ENS_VERIFY_LABEL || "story";
   const name = normalize(`${label}.${parent}`);
+
+  // Real mainnet ERC-8004 agentId behind each demo label (see gateway/src/records.ts).
+  const AGENT_IDS: Record<string, number> = {
+    story: 14645,
+    gekko: 13445,
+    openodds: 22771,
+    dackie: 9382,
+    ethy: 9380,
+    alice: 14645,
+    bob: 13445,
+  };
+  const agentId = AGENT_IDS[label] ?? 14645;
 
   const client = createPublicClient({
     chain: sepolia,
@@ -56,10 +68,10 @@ async function main() {
     console.log(`text[${key}]`.padEnd(28) + `-> ${value ?? "(none)"}`);
   }
 
-  // ENSIP-25 registration key (mainnet IdentityRegistry, agentId 42 for alice).
+  // ENSIP-25 registration key (mainnet ERC-8004 IdentityRegistry, real agentId for this label).
   const reg =
     "agent-registration[0x00010000010114" +
-    "8004a169fb4a3325136eb29fa0ceb6d2e539a432][42]";
+    `8004a169fb4a3325136eb29fa0ceb6d2e539a432][${agentId}]`;
   const verified = await client.getEnsText({ name, key: reg });
   console.log(`ENSIP-25 verified link     -> ${verified ? "YES (" + verified + ")" : "no"}`);
 

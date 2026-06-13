@@ -1,18 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ArrowUpRight,
-  Check,
-  Loader2,
-  Play,
-  RefreshCw,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { ArrowUpRight, Check, Play, RefreshCw, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { DepositReceipt } from "@/components/deposit-receipt";
+import { PfandCursor } from "@/components/pfand-cursor";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDemoRun } from "@/lib/api";
@@ -86,7 +79,7 @@ export default function DemoPage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-2 text-center animate-in fade-in slide-in-from-bottom-3 duration-700">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">
             The Pfand loop · live on Arc
           </p>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
@@ -105,7 +98,7 @@ export default function DemoPage() {
             <button
               type="button"
               onClick={run}
-              className="inline-flex h-11 items-center gap-2 rounded-md bg-signal px-6 font-mono text-sm font-semibold text-signal-foreground transition-opacity hover:opacity-90"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-signal px-6 font-mono text-sm font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
             >
               <Play className="h-4 w-4" /> Run the loop
             </button>
@@ -114,11 +107,12 @@ export default function DemoPage() {
               type="button"
               onClick={run}
               disabled={phase === "running"}
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-card px-6 font-mono text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-6 font-mono text-sm whitespace-nowrap text-foreground shadow-soft-sm transition-colors hover:border-signal/40 disabled:opacity-50"
             >
               {phase === "running" ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> running…
+                  running
+                  <PfandCursor className="h-[14px] w-[7px]" />
                 </>
               ) : (
                 <>
@@ -133,8 +127,8 @@ export default function DemoPage() {
           {/* Stepper */}
           <div className="relative">
             {steps.length === 0 ? (
-              <div className="flex h-full min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border text-center">
-                <Sparkles className="h-6 w-6 text-signal/60" />
+              <div className="flex h-full min-h-64 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border text-center">
+                <PfandCursor className="h-8 w-3" />
                 <p className="font-mono text-sm text-muted-foreground">
                   Press run to execute the lifecycle.
                 </p>
@@ -169,7 +163,8 @@ export default function DemoPage() {
                 <ReputationCard receipt={receipt} done={phase === "done"} />
               </>
             ) : (
-              <Card className="items-center justify-center gap-3 p-10 text-center">
+              <Card className="items-center justify-center gap-3 rounded-2xl p-10 text-center shadow-soft-sm">
+                <PfandCursor className="h-7 w-2.5" />
                 <p className="font-mono text-xs text-muted-foreground">
                   The deposit receipt updates here as the loop runs.
                 </p>
@@ -208,7 +203,7 @@ function StepRow({
         {state === "done" ? (
           <Check className="h-4 w-4" />
         ) : state === "active" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <PfandCursor className="h-[14px] w-[6px]" />
         ) : (
           <span className="font-mono text-[10px]">{step.index}</span>
         )}
@@ -216,10 +211,10 @@ function StepRow({
 
       <div
         className={cn(
-          "flex-1 rounded-xl border bg-card p-4 transition-all duration-500",
+          "flex-1 rounded-2xl border bg-card p-4 transition-all duration-500",
           state === "active"
-            ? "border-signal/40 shadow-lg shadow-black/20"
-            : "border-border",
+            ? "border-signal/40 shadow-soft-md"
+            : "border-border shadow-soft-sm",
         )}
       >
         <div className="flex items-center justify-between gap-2">
@@ -230,13 +225,13 @@ function StepRow({
             {step.gasFree && (
               <Badge
                 variant="outline"
-                className="gap-1 border-signal/30 font-mono text-[9px] uppercase tracking-wider text-signal"
+                className="gap-1 border-transparent bg-signal-wash font-mono text-[9px] uppercase tracking-wider text-signal-ink"
               >
                 <Zap className="h-2.5! w-2.5!" /> gas-free
               </Badge>
             )}
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-signal/80">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-signal-ink/80">
             {step.tag}
           </span>
         </div>
@@ -248,7 +243,7 @@ function StepRow({
             href={`https://explorer.arc.network/tx/${step.txHash}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground transition-colors hover:text-signal"
+            className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground transition-colors hover:text-signal-ink"
           >
             {shortAddress(step.txHash, 10, 8)}
             <ArrowUpRight className="h-3 w-3" />
@@ -268,7 +263,7 @@ function ReputationCard({
 }) {
   const shown = done ? receipt.scoreAfter : receipt.scoreBefore;
   return (
-    <Card className="gap-4 p-5">
+    <Card className="gap-4 rounded-2xl p-5 shadow-soft-sm">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {receipt.agentName} reputation

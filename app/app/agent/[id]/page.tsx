@@ -40,7 +40,7 @@ export default function AgentDetailPage({
           </p>
           <Link
             href="/explore"
-            className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs text-signal hover:underline"
+            className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs text-signal-ink hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> back to explorer
           </Link>
@@ -81,7 +81,7 @@ export default function AgentDetailPage({
                   {agent.x402Support && (
                     <Badge
                       variant="outline"
-                      className="gap-1 border-signal/30 font-mono text-[10px] uppercase tracking-wider text-signal"
+                      className="gap-1 border-transparent bg-signal-wash font-mono text-[10px] uppercase tracking-wider text-signal-ink"
                     >
                       <Zap className="h-2.5! w-2.5!" /> x402
                     </Badge>
@@ -96,7 +96,7 @@ export default function AgentDetailPage({
                     </Badge>
                   )}
                 </div>
-                <p className="mt-1 font-mono text-sm text-signal">
+                <p className="mt-1 font-mono text-sm text-signal-ink">
                   {agent.ensName}
                 </p>
                 <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -131,7 +131,7 @@ export default function AgentDetailPage({
               </div>
 
               {/* Hire CTA + price */}
-              <Card className="h-fit gap-4 p-5 animate-in fade-in slide-in-from-bottom-3 duration-700">
+              <Card className="h-fit gap-4 rounded-2xl p-5 shadow-soft-sm animate-in fade-in slide-in-from-bottom-3 duration-700">
                 <div className="flex items-baseline justify-between">
                   <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                     price
@@ -159,12 +159,12 @@ export default function AgentDetailPage({
                 {agent.payable ? (
                   <Link
                     href="/demo"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-signal font-mono text-sm font-semibold text-signal-foreground transition-opacity hover:opacity-90"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-signal font-mono text-sm font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
                   >
                     Hire on Arc →
                   </Link>
                 ) : (
-                  <div className="inline-flex h-10 items-center justify-center rounded-md border border-border font-mono text-xs text-muted-foreground">
+                  <div className="inline-flex h-10 items-center justify-center rounded-xl border border-border font-mono text-xs text-muted-foreground">
                     not payable on Arc
                   </div>
                 )}
@@ -184,7 +184,7 @@ export default function AgentDetailPage({
                   showing latest {feedback.length}
                 </span>
               </div>
-              <Card className="gap-0 overflow-hidden p-0">
+              <Card className="gap-0 overflow-hidden rounded-2xl p-0 shadow-soft-sm">
                 {feedback.length === 0 ? (
                   <div className="p-8 text-center font-mono text-sm text-muted-foreground">
                     No feedback yet.
@@ -252,7 +252,7 @@ function RecordsTable({ agent }: { agent: import("@pfand/shared").Agent }) {
   return (
     <div className="mt-8">
       <div className="mb-4 flex items-center gap-2">
-        <BadgeCheck className="h-4 w-4 text-signal" />
+        <BadgeCheck className="h-4 w-4 text-signal-ink" />
         <h2 className="font-display text-xl font-semibold text-foreground">
           ENS records
         </h2>
@@ -260,7 +260,7 @@ function RecordsTable({ agent }: { agent: import("@pfand/shared").Agent }) {
           served via CCIP-Read
         </span>
       </div>
-      <Card className="gap-0 overflow-hidden p-0">
+      <Card className="gap-0 overflow-hidden rounded-2xl p-0 shadow-soft-sm">
         {records.map((r, i) => (
           <div
             key={r.key}
@@ -337,7 +337,7 @@ function FeedbackRow({ f }: { f: FeedbackEntry }) {
           href={`https://explorer.arc.network/tx/${f.txHash}`}
           target="_blank"
           rel="noreferrer"
-          className="shrink-0 text-muted-foreground transition-colors hover:text-signal"
+          className="shrink-0 text-muted-foreground transition-colors hover:text-signal-ink"
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </a>

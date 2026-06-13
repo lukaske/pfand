@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import type { SearchFilters } from "@pfand/shared";
 import { SiteHeader } from "@/components/site-header";
 import { AgentCard } from "@/components/agent-card";
+import { PfandCursor } from "@/components/pfand-cursor";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSearch } from "@/lib/api";
@@ -20,7 +21,7 @@ const EXAMPLES = [
 function FilterChips({ filters }: { filters: SearchFilters }) {
   const chips: { label: string; tone: string }[] = [];
   for (const s of filters.skills)
-    chips.push({ label: s, tone: "border-signal/30 text-signal" });
+    chips.push({ label: s, tone: "border-signal/30 text-signal-ink" });
   if (filters.maxPriceUsdc != null)
     chips.push({
       label: `≤ ${filters.maxPriceUsdc} USDC`,
@@ -32,7 +33,10 @@ function FilterChips({ filters }: { filters: SearchFilters }) {
       tone: "border-pfand-returned/30 text-pfand-returned",
     });
   if (filters.requiresX402)
-    chips.push({ label: "x402", tone: "border-signal/30 text-signal" });
+    chips.push({
+      label: "⚡ x402",
+      tone: "border-transparent bg-signal-wash text-signal-ink",
+    });
   if (filters.payableOnly)
     chips.push({
       label: "payable",
@@ -82,7 +86,7 @@ export default function SearchPage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6">
         <div className="flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-3 duration-700">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">
             Natural-language discovery
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -100,22 +104,36 @@ export default function SearchPage() {
           className="mt-8 animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "100ms" }}
         >
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 transition-colors focus-within:border-signal/50">
+          <div className="flex items-center gap-2 rounded-xl border-[1.5px] border-[color-mix(in_oklch,var(--signal)_45%,var(--border))] bg-card px-4 py-3 shadow-soft-md transition-shadow focus-within:shadow-[0_0_0_4px_var(--signal-wash),var(--shadow-md)]">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <input
-              autoFocus
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="cheap reliable solidity auditor that takes x402…"
-              className="flex-1 bg-transparent font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            />
+            <span className="flex flex-1 items-baseline">
+              <input
+                autoFocus
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="cheap reliable solidity auditor that takes x402…"
+                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              {!value && (
+                <PfandCursor className="-ml-1 h-[16px] w-[8px]" />
+              )}
+            </span>
             <button
               type="submit"
               disabled={search.isPending || !value.trim()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-signal px-3 font-mono text-xs font-semibold text-signal-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-signal px-3 font-mono text-xs font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {search.isPending ? "searching…" : "search"}
-              <ArrowRight className="h-3.5 w-3.5" />
+              {search.isPending ? (
+                <>
+                  searching
+                  <PfandCursor className="h-[12px] w-[6px] bg-signal-foreground" />
+                </>
+              ) : (
+                <>
+                  search
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -135,9 +153,9 @@ export default function SearchPage() {
                   key={ex}
                   type="button"
                   onClick={() => run(ex)}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-signal/40 hover:text-foreground"
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-soft-sm transition-colors hover:border-signal/40 hover:text-foreground"
                 >
-                  <Sparkles className="h-3 w-3 text-signal/60 group-hover:text-signal" />
+                  <span className="text-signal-ink/70 transition-colors group-hover:text-signal-ink">✦</span>
                   {ex}
                 </button>
               ))}
@@ -148,7 +166,7 @@ export default function SearchPage() {
         {/* Results */}
         {(search.isPending || search.data) && (
           <div className="mt-10">
-            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-card/40 p-4">
+            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-soft-sm">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 extracted filters
               </span>
@@ -182,7 +200,8 @@ export default function SearchPage() {
                 </div>
               </>
             ) : (
-              <div className="rounded-xl border border-border bg-card/40 p-10 text-center">
+              <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-10 text-center shadow-soft-sm">
+                <PfandCursor className="h-9 w-3" />
                 <p className="font-mono text-sm text-muted-foreground">
                   No agents matched. Try loosening the price or skill.
                 </p>

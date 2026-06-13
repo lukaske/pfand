@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { PfandCursor } from "@/components/pfand-cursor";
+import { cn } from "@/lib/utils";
 
 const LOOP = [
   { n: "01", title: "Discover", body: "Search every ERC-8004 agent in natural language, ranked by payment-backed reputation.", tag: "ENS · BigQuery" },
@@ -54,15 +56,16 @@ export default function Home() {
           <div className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-signal/10 blur-[120px]" />
           <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
             <div className="flex flex-col justify-center">
-              <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground animate-in fade-in slide-in-from-bottom-2 duration-700">
+              <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground shadow-soft-sm animate-in fade-in slide-in-from-bottom-2 duration-700">
                 ERC-8004 · x402 · ENS
               </div>
-              <h1 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight text-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-6xl lg:text-7xl">
+              <h1 className="font-display text-5xl font-extrabold leading-[0.98] tracking-[-0.035em] text-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-6xl lg:text-7xl">
                 Reputation you
                 <br />
                 can&rsquo;t fake,
                 <br />
-                <span className="text-signal">because someone paid.</span>
+                <span className="text-signal-ink">because someone paid.</span>
+                <PfandCursor className="ml-2 h-[0.78em] w-[0.12em] align-[-0.08em]" />
               </h1>
               <p
                 className="mt-7 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-lg"
@@ -78,13 +81,13 @@ export default function Home() {
               >
                 <Link
                   href="/demo"
-                  className="rounded-md bg-signal px-5 py-2.5 font-mono text-sm font-semibold text-signal-foreground transition-opacity hover:opacity-90"
+                  className="rounded-xl bg-signal px-5 py-2.5 font-mono text-sm font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
                 >
                   Run the loop →
                 </Link>
                 <Link
                   href="/explore"
-                  className="rounded-md border border-border bg-card/40 px-5 py-2.5 font-mono text-sm text-foreground transition-colors hover:bg-accent"
+                  className="rounded-xl border border-border bg-card px-5 py-2.5 font-mono text-sm whitespace-nowrap text-foreground shadow-soft-sm transition-colors hover:border-signal/40"
                 >
                   Explore agents
                 </Link>
@@ -101,7 +104,7 @@ export default function Home() {
           </div>
 
           {/* Stat band */}
-          <div className="border-t border-border bg-card/30">
+          <div className="border-t border-border bg-card">
             <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-border sm:grid-cols-4">
               <Stat label="Agents indexed" value="—" />
               <Stat label="Feedback signals" value="—" />
@@ -115,18 +118,18 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
           <div className="mb-10 flex items-end justify-between gap-4">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal">The loop</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">The loop</p>
               <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 Feedback you reclaim, not feedback you give.
               </h2>
             </div>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-4">
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft-sm md:grid-cols-4">
             {LOOP.map((step) => (
               <div key={step.n} className="flex flex-col gap-3 bg-card p-6">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-muted-foreground">{step.n}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-signal/80">{step.tag}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-signal-ink/80">{step.tag}</span>
                 </div>
                 <h3 className="font-display text-xl font-semibold text-foreground">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{step.body}</p>
@@ -136,11 +139,11 @@ export default function Home() {
         </section>
 
         {/* Pillars */}
-        <section className="border-t border-border bg-card/20">
+        <section className="border-t border-border bg-muted">
           <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
             <div className="grid gap-6 md:grid-cols-3">
               {PILLARS.map((p) => (
-                <div key={p.k} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-7">
+                <div key={p.k} className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-7 shadow-soft-sm transition-colors hover:border-signal/40">
                   <div className="flex items-center justify-between">
                     <span className={`font-mono text-[11px] uppercase tracking-[0.18em] ${p.color}`}>{p.k}</span>
                     <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{p.foot}</span>
@@ -156,8 +159,12 @@ export default function Home() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-2 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
-          <span className="font-display text-sm font-bold text-foreground">
-            Pfand <span className="font-mono text-xs font-normal text-muted-foreground">/ Broker8004</span>
+          <span className="flex items-center font-display text-sm font-bold text-foreground">
+            <span className="inline-flex items-baseline">
+              Pfand
+              <PfandCursor className="h-[12px] w-[5px]" />
+            </span>
+            <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">/ Broker8004</span>
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
             ETHGlobal New York 2026 — ERC-8004 discovery, payments &amp; payment-backed reputation
@@ -170,15 +177,15 @@ export default function Home() {
 
 function DepositReceipt() {
   const rows = [
-    { k: "agent", v: "audit-sol.broker8004.eth" },
-    { k: "agentId", v: "#42" },
-    { k: "fee", v: "100.00 USDC" },
-    { k: "pfand (10%)", v: "10.00 USDC" },
+    { k: "agent", v: "audit-sol.broker8004.eth", accent: false },
+    { k: "agentId", v: "#42", accent: false },
+    { k: "fee", v: "100.00 USDC", accent: false },
+    { k: "pfand (10%)", v: "10.00 USDC", accent: true },
   ];
   return (
     <div className="relative w-full max-w-md">
-      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl border border-border bg-card/40" />
-      <div className="relative rounded-xl border border-border bg-card p-6 shadow-2xl shadow-black/30">
+      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl border border-border bg-muted" />
+      <div className="relative rounded-2xl border border-border bg-card p-6 shadow-soft-lg">
         <div className="flex items-center justify-between border-b border-dashed border-border pb-4">
           <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
             Deposit Receipt
@@ -189,7 +196,14 @@ function DepositReceipt() {
           {rows.map((r) => (
             <div key={r.k} className="flex items-center justify-between gap-4">
               <dt className="font-mono text-xs text-muted-foreground">{r.k}</dt>
-              <dd className="truncate font-mono text-xs text-foreground">{r.v}</dd>
+              <dd
+                className={cn(
+                  "truncate font-mono text-xs",
+                  r.accent ? "font-semibold text-signal-ink" : "text-foreground",
+                )}
+              >
+                {r.v}
+              </dd>
             </div>
           ))}
         </dl>
