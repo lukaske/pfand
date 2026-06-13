@@ -1,0 +1,24 @@
+{
+  "name": "@pfand/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pfand index: BigQuery ERC-8004 mainnet indexer + Arc RPC listener -> Supabase (pgvector hybrid search).",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "bigquery": "tsx src/bigquery.ts",
+    "bigquery:dry": "tsx src/bigquery.ts --dry-run",
+    "arc": "tsx src/arc-listener.ts"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.9.1",
+    "@pfand/shared": "file:../packages/shared",
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

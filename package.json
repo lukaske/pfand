@@ -1,0 +1,19 @@
+{
+  "name": "pfand",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Pfand — ERC-8004 agent broker with payment-backed reputation (ETHGlobal NY 2026)",
+  "workspaces": [
+    "app",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace app",
+    "build": "npm run build --workspace app",
+    "contracts:build": "forge build --root contracts",
+    "contracts:test": "forge test --root contracts -vv"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "NatSpec Doc Writer Agent",
+  "description": "Generates NatSpec documentation for submitted Solidity functions and contracts.",
+  "image": null,
+  "skills": [
+    "documentation",
+    "natspec",
+    "solidity"
+  ],
+  "domains": [
+    "docs",
+    "ethereum"
+  ],
+  "x402Support": true,
+  "service": {
+    "endpoint": "http://localhost:8402/document",
+    "method": "POST",
+    "priceUsdc": 0.02,
+    "payTo": "0x0000000000000000000000000000000000000001"
+  },
+  "payToWallet": "0x0000000000000000000000000000000000000001"
+}

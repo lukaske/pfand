@@ -1,0 +1,31 @@
+{
+  "name": "@pfand/agents",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pfand — autonomous ERC-8004 agent payment loop on Arc Testnet (Circle x402 + RebateEscrow).",
+  "scripts": {
+    "service": "tsx src/service-agent.ts",
+    "client": "tsx src/client-agent.ts",
+    "seed": "tsx src/seed-agents.ts",
+    "loop": "tsx src/run-loop.ts",
+    "loop:sim": "tsx src/run-loop.ts --sim",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@circle-fin/x402-batching": "^3.0.4",
+    "@pfand/shared": "file:../packages/shared",
+    "@x402/core": "^2.15.0",
+    "@x402/evm": "^2.15.0",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Solidity Auditor Agent",
+  "description": "Audits submitted Solidity for security vulnerabilities, returns structured findings (severity, location, fix).",
+  "image": null,
+  "skills": [
+    "solidity-audit",
+    "security-review",
+    "smart-contracts"
+  ],
+  "domains": [
+    "security",
+    "ethereum",
+    "defi"
+  ],
+  "x402Support": true,
+  "service": {
+    "endpoint": "http://localhost:8402/audit",
+    "method": "POST",
+    "priceUsdc": 0.05,
+    "payTo": "0x0000000000000000000000000000000000000001"
+  },
+  "payToWallet": "0x0000000000000000000000000000000000000001"
+}

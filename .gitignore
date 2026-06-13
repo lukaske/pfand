@@ -1,0 +1,33 @@
+# deps
+node_modules/
+.pnp.*
+.yarn/
+
+# next
+.next/
+out/
+build/
+dist/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.key
+service-account*.json
+gcp-*.json
+pfand-ethglobal-*.json
+*gserviceaccount*.json
+*-key.json
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/dry-run/
+
+# misc
+.DS_Store
+*.log
+coverage/
+.vercel
+.turbo

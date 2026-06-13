@@ -1,0 +1,187 @@
+import { getAddress } from "viem";
+import { getArcClients } from "./lib/clients.js";
+import { EscrowClient, loadEscrowAddresses } from "./lib/escrow.js";
+import { makeBuyerGateway, type PayResult } from "./lib/x402.js";
+import { requireEnv, optionalEnv, isSimMode } from "./lib/env.js";
+import { log, formatUsdc6, parseUsdc6 } from "./lib/log.js";
+
+/**
+ * Autonomous BUYER agent.
+ *
+ * Given a target (agentId + serviceWallet + endpoint), it:
+ *   1. Pays the service call GAS-FREE via Circle x402 (off-chain signed,
+ *      batch-settled by the Gateway facilitator).
+ *   2. Runs the full Pfand escrow lifecycle with viem:
+ *      approve → openJob → completeJob → giveFeedback → claimRebate,
+ *   logging every tx hash and the deposit state (held → returned).
+ */
+
+export interface HireTarget {
+  agentId: bigint;
+  serviceWallet: `0x${string}`;
+  /** Full URL of the paid x402 endpoint, e.g. http://localhost:8402/audit */
+  endpoint: string;
+  /** Human USDC fee to escrow for the job (the service "price"). */
+  feeUsdc: string;
+  /** What to send the agent (Solidity source etc.). */
+  input: string;
+  /** Feedback score 0..100 the buyer posts after the work. */
+  score: number;
+  /** Seconds the client has to post feedback before pfand can be forfeited. */
+  feedbackWindowSecs: bigint;
+}
+
+export interface HireResult {
+  paid: PayResult | null;
+  jobId: bigint | null;
+  txHashes: {
+    approve?: string;
+    open?: string;
+    complete?: string;
+    feedback?: string;
+    claim?: string;
+    payment?: string;
+  };
+  pfandReturned: boolean;
+}
+
+/** Step 1: pay the x402 service call gas-free. Returns the work result + settlement tx. */
+export async function payForService(
+  endpoint: string,
+  input: string,
+): Promise<PayResult> {
+  const pk = requireEnv("PRIVATE_KEY");
+  const rpcUrl = optionalEnv("ARC_RPC_URL");
+  const gateway = makeBuyerGateway(pk, rpcUrl);
+
+  log.info(`Paying ${endpoint} via Circle x402 (Gateway-batched, gas-free)…`);
+  const result = await gateway.pay(endpoint, {
+    method: "POST",
+    body: { input },
+  });
+  log.money("x402 paid", formatUsdc6(result.amount));
+  log.tx("x402 settlement", result.transaction);
+  return result;
+}
+
+/** Step 2: run the escrow lifecycle for the (now-delivered) job. */
+export async function runEscrowLifecycle(
+  escrow: EscrowClient,
+  target: HireTarget,
+): Promise<HireResult> {
+  const res: HireResult = { paid: null, jobId: null, txHashes: {}, pfandReturned: false };
+  const fee = parseUsdc6(target.feeUsdc);
+  const pfand = (fee * 1000n) / 10000n; // 10% PFAND_BPS
+  const clientAddr = escrow.account.address;
+
+  log.step("escrow", `Pfand bond — fee ${formatUsdc6(fee)} (paid via x402), pfand ${formatUsdc6(pfand)} (10% held)`);
+
+  // approve only the Pfand bond (the fee was already paid gas-free via x402)
+  const allowance = await escrow.usdcAllowance(clientAddr, loadEscrowAddresses().rebateEscrow);
+  if (allowance < pfand) {
+    res.txHashes.approve = await escrow.approve(pfand);
+  } else {
+    log.info(`USDC allowance already sufficient (${formatUsdc6(allowance)}).`);
+  }
+
+  // openJob — escrows only the 10% Pfand bond
+  const opened = await escrow.openJob(
+    target.agentId,
+    target.serviceWallet,
+    fee,
+    target.feedbackWindowSecs,
+  );
+  res.jobId = opened.jobId;
+  res.txHashes.open = opened.hash;
+  log.info("Pfand bond escrowed (held pending fresh feedback):");
+  await escrow.logDepositState(opened.jobId);
+
+  // giveFeedback — fresh, on-chain ERC-8004 signal unlocks the pfand
+  const idxBefore = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
+  res.txHashes.feedback = await escrow.giveFeedback({
+    agentId: target.agentId,
+    value: BigInt(target.score),
+    valueDecimals: 0,
+    tag1: "audit",
+    tag2: "pfand-demo",
+    endpoint: target.endpoint,
+    feedbackURI: `pfand://job/${opened.jobId}/feedback`,
+  });
+  const idxAfter = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
+  log.ok(`Feedback posted (score ${target.score}/100), feedback index ${idxBefore} → ${idxAfter}.`);
+
+  // claimRebate — returns the pfand iff fresh non-revoked feedback exists
+  const claimable = await escrow.isRebateClaimable(opened.jobId);
+  log.detail("isRebateClaimable", String(claimable));
+  if (claimable) {
+    res.txHashes.claim = await escrow.claimRebate(opened.jobId);
+    res.pfandReturned = true;
+    log.ok(`Pfand ${formatUsdc6(pfand)} reclaimed to client ${clientAddr}.`);
+    await escrow.logDepositState(opened.jobId);
+  } else {
+    log.warn("Pfand not yet claimable (no fresh feedback detected).");
+  }
+
+  return res;
+}
+
+/** Full buyer flow: pay gas-free, then escrow lifecycle. */
+export async function hireAgent(target: HireTarget): Promise<HireResult> {
+  const paid = await payForService(target.endpoint, target.input);
+
+  const { publicClient, walletClient } = getArcClients();
+  const escrow = new EscrowClient(publicClient, walletClient, loadEscrowAddresses());
+  const result = await runEscrowLifecycle(escrow, target);
+  result.paid = paid;
+  result.txHashes.payment = paid.transaction;
+  return result;
+}
+
+function targetFromEnv(): HireTarget {
+  return {
+    agentId: BigInt(requireEnv("TARGET_AGENT_ID")),
+    serviceWallet: getAddress(requireEnv("TARGET_SERVICE_WALLET")),
+    endpoint: requireEnv("TARGET_ENDPOINT"),
+    feeUsdc: optionalEnv("TARGET_FEE_USDC") ?? "0.05",
+    input:
+      optionalEnv("TARGET_INPUT") ??
+      "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract Vault { mapping(address=>uint) bal; function withdraw() public { (bool ok,)=msg.sender.call{value:bal[msg.sender]}(\"\"); require(ok); bal[msg.sender]=0; } }",
+    score: Number(optionalEnv("TARGET_SCORE") ?? "92"),
+    feedbackWindowSecs: BigInt(optionalEnv("FEEDBACK_WINDOW_SECS") ?? "86400"),
+  };
+}
+
+async function main() {
+  log.banner("Pfand client agent — autonomous buyer");
+  if (isSimMode()) {
+    const t = targetFromEnv_safe();
+    log.sim("Dry-run: no chain calls. Intended actions:");
+    log.sim(`pay x402 → ${t.endpoint} (~${t.feeUsdc} USDC fee, gas-free via Circle Gateway)`);
+    log.sim(`approve pfand, openJob(agentId=${t.agentId}, serviceWallet=${t.serviceWallet}, fee=${t.feeUsdc}) → bonds 10%`);
+    log.sim("giveFeedback → ERC-8004 signal; claimRebate → pfand returned");
+    return;
+  }
+  const target = targetFromEnv();
+  await hireAgent(target);
+}
+
+/** Env read that tolerates missing values for the --sim narrative. */
+function targetFromEnv_safe(): HireTarget {
+  const safe = (k: string, d: string) => optionalEnv(k) ?? d;
+  return {
+    agentId: BigInt(safe("TARGET_AGENT_ID", "1")),
+    serviceWallet: getAddress(safe("TARGET_SERVICE_WALLET", "0x0000000000000000000000000000000000000001")),
+    endpoint: safe("TARGET_ENDPOINT", "http://localhost:8402/audit"),
+    feeUsdc: safe("TARGET_FEE_USDC", "0.05"),
+    input: safe("TARGET_INPUT", "<solidity source>"),
+    score: Number(safe("TARGET_SCORE", "92")),
+    feedbackWindowSecs: BigInt(safe("FEEDBACK_WINDOW_SECS", "86400")),
+  };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    log.error(String(err instanceof Error ? err.message : err));
+    process.exit(1);
+  });
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Gas Optimizer Agent",
+  "description": "Reviews Solidity for gas inefficiencies and returns concrete optimizations with estimated savings.",
+  "image": null,
+  "skills": [
+    "gas-optimization",
+    "solidity",
+    "smart-contracts"
+  ],
+  "domains": [
+    "performance",
+    "ethereum"
+  ],
+  "x402Support": true,
+  "service": {
+    "endpoint": "http://localhost:8402/optimize",
+    "method": "POST",
+    "priceUsdc": 0.03,
+    "payTo": "0x0000000000000000000000000000000000000001"
+  },
+  "payToWallet": "0x0000000000000000000000000000000000000001"
+}

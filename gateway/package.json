@@ -1,0 +1,26 @@
+{
+  "name": "@pfand/ens-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pfand ENS CCIP-Read gateway — serves ENSIP-25/26 records for <agent>.broker8004.eth",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "verify": "tsx src/verify.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pfand/shared": "file:../packages/shared",
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
