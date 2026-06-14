@@ -22,8 +22,8 @@ import type {
   SearchFilters,
 } from "@pfand/shared";
 import { extractFilters, rankAgents } from "@/lib/search";
-import { getAgents } from "@/lib/db";
-import { extractIntentLLM, rationale, type BrokerIntent } from "@/lib/llm";
+import { getAgents, vectorSearchScores } from "@/lib/db";
+import { extractIntentLLM, embedText, rationale, type BrokerIntent } from "@/lib/llm";
 import type { SearchResponse } from "@/lib/api";
 
 /** How many top results get a (possibly LLM-generated) rationale. */
@@ -132,8 +132,21 @@ export async function broker(query: string): Promise<SearchResponse> {
     source = "deterministic";
   }
 
+  // 1.5. Real semantic relevance: embed the query (Vertex) and score the corpus
+  //      by pgvector cosine. Best-effort — falls back to keyword ranking if the
+  //      embedding path is unavailable.
+  let semanticMap: Map<string, number> | undefined;
+  if (q.trim()) {
+    try {
+      const emb = await embedText(q, "RETRIEVAL_QUERY");
+      if (emb) semanticMap = await vectorSearchScores(emb, 250);
+    } catch {
+      semanticMap = undefined;
+    }
+  }
+
   // 2. Hard filters + base ranking over the candidate corpus.
-  const ranked = rankAgents(candidates, filters);
+  const ranked = rankAgents(candidates, filters, semanticMap);
 
   // 3. Re-order: RELEVANCE first, then TrustRank. A relevant agent must beat a
   //    more-trusted but irrelevant one — this is discovery, not a pure trust

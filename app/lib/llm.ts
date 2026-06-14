@@ -18,8 +18,37 @@ import {
   type GenerativeModel,
   type GenerateContentResult,
 } from "@google-cloud/vertexai";
+import aiplatform from "@google-cloud/aiplatform";
 import type { Agent } from "@pfand/shared";
 import { ensureGcpCredentials } from "./gcp-creds";
+
+const { PredictionServiceClient } = aiplatform.v1;
+
+/* Manual google.protobuf.Value encoding — `aiplatform.helpers` is undefined in
+ * the bundled Vercel runtime, so we build the Structs ourselves. */
+type PValue = Record<string, unknown>;
+function toValue(obj: unknown): PValue {
+  if (obj === null || obj === undefined) return { nullValue: 0 };
+  if (typeof obj === "number") return { numberValue: obj };
+  if (typeof obj === "string") return { stringValue: obj };
+  if (typeof obj === "boolean") return { boolValue: obj };
+  if (Array.isArray(obj)) return { listValue: { values: obj.map(toValue) } };
+  if (typeof obj === "object") {
+    const fields: Record<string, PValue> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) fields[k] = toValue(v);
+    return { structValue: { fields } };
+  }
+  return { nullValue: 0 };
+}
+/** Pull `predictions[i].embeddings.values` (a number[]) out of a returned Value. */
+function embeddingValues(v: unknown): number[] | null {
+  const fields = (v as { structValue?: { fields?: Record<string, unknown> } })?.structValue?.fields;
+  const vals = (
+    fields?.embeddings as { structValue?: { fields?: { values?: { listValue?: { values?: unknown[] } } } } }
+  )?.structValue?.fields?.values?.listValue?.values;
+  if (!Array.isArray(vals)) return null;
+  return vals.map((x) => Number((x as { numberValue?: number }).numberValue));
+}
 
 /** Structured intent the broker derives a SearchFilters + detectedTask from. */
 export interface BrokerIntent {
@@ -34,6 +63,9 @@ export interface BrokerIntent {
 }
 
 const MODEL_ID = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const EMBED_MODEL = process.env.EMBED_MODEL || "text-embedding-004";
+/** Output dimensionality — MUST match the `vector(256)` column in the schema. */
+export const EMBED_DIM = 256;
 
 function projectId(): string | null {
   return (
@@ -74,6 +106,85 @@ function getModel(): GenerativeModel | null {
     _model = null;
     return _model;
   }
+}
+
+/* ------------------------------ embeddings ------------------------------- */
+
+let _predict: InstanceType<typeof PredictionServiceClient> | null | undefined;
+function predictClient() {
+  if (_predict !== undefined) return _predict;
+  try {
+    ensureGcpCredentials();
+    if (!projectId()) {
+      _predict = null;
+      return _predict;
+    }
+    _predict = new PredictionServiceClient({
+      apiEndpoint: `${location()}-aiplatform.googleapis.com`,
+    });
+  } catch {
+    _predict = null;
+  }
+  return _predict;
+}
+
+/**
+ * Embed a batch of texts with Vertex `text-embedding-004` (256-dim, matching the
+ * pgvector column). Returns one vector per input, or null for any that fail.
+ * Best-effort: never throws — an all-null result just disables vector search.
+ */
+export async function embedTexts(
+  texts: string[],
+  taskType: "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT" = "RETRIEVAL_DOCUMENT",
+): Promise<(number[] | null)[]> {
+  const client = predictClient();
+  const project = projectId();
+  if (!client || !project) return texts.map(() => null);
+  const endpoint = `projects/${project}/locations/${location()}/publishers/google/models/${EMBED_MODEL}`;
+  const out: (number[] | null)[] = [];
+  const BATCH = 50;
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const chunk = texts.slice(i, i + BATCH);
+    try {
+      const instances = chunk.map((t) =>
+        toValue({ content: (t || "").slice(0, 2000) || " ", task_type: taskType }),
+      );
+      const parameters = toValue({ outputDimensionality: EMBED_DIM });
+      const [resp] = await client.predict({
+        endpoint,
+        instances: instances as never,
+        parameters: parameters as never,
+      });
+      const preds = resp.predictions ?? [];
+      for (let j = 0; j < chunk.length; j++) {
+        const vals = preds[j] ? embeddingValues(preds[j]) : null;
+        out.push(Array.isArray(vals) && vals.length === EMBED_DIM ? vals : null);
+      }
+    } catch {
+      for (let j = 0; j < chunk.length; j++) out.push(null);
+    }
+  }
+  return out;
+}
+
+/** Embed a single string (defaults to query mode). Null if unavailable. */
+export async function embedText(
+  text: string,
+  taskType: "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT" = "RETRIEVAL_QUERY",
+): Promise<number[] | null> {
+  const [v] = await embedTexts([text], taskType);
+  return v ?? null;
+}
+
+/** Canonical text we embed for an agent (name + description + skills). */
+export function agentEmbedText(a: {
+  name?: string | null;
+  description?: string | null;
+  skills?: string[] | null;
+}): string {
+  const parts = [a.name ?? "", a.description ?? ""];
+  if (a.skills?.length) parts.push(`Skills: ${a.skills.join(", ")}`);
+  return parts.filter(Boolean).join(". ").trim();
 }
 
 /** Pull the first candidate's text out of a Vertex response, defensively. */

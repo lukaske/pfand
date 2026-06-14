@@ -420,6 +420,87 @@ export async function getAgentByEnsName(ensName: string): Promise<EnsAgentRecord
   };
 }
 
+/* ------------------------------ vector search ----------------------------- */
+
+/** pgvector wants its input as a `[a,b,c]` string literal, not a JSON array. */
+function vectorLiteral(vec: number[]): string {
+  return "[" + vec.map((x) => (Number.isFinite(x) ? x : 0)).join(",") + "]";
+}
+
+/** Persist an agent's embedding (256-dim) into the pgvector column. */
+export async function setAgentEmbedding(
+  network: string,
+  agentId: string,
+  vec: number[],
+): Promise<void> {
+  const c = await supa();
+  const { error } = await c
+    .from("agents")
+    .update({ embedding: vectorLiteral(vec) })
+    .eq("network", network)
+    .eq("agent_id", agentId);
+  if (error) throw new Error(`set embedding: ${error.message}`);
+}
+
+/** The served corpus (rated mainnet + all Arc) rows still missing an embedding. */
+export async function agentsMissingEmbedding(
+  limit = 200,
+): Promise<{ network: string; agentId: string; name: string; description: string; skills: string[] }[]> {
+  const c = await supa();
+  const { data, error } = await c
+    .from("agents")
+    .select("network,agent_id,name,description,skills")
+    .is("embedding", null)
+    .or("trustrank.not.is.null,network.eq.arc")
+    .limit(limit);
+  if (error) throw new Error(`missing embeddings: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    network: String(r.network),
+    agentId: String(r.agent_id),
+    name: (r.name as string) ?? "",
+    description: (r.description as string) ?? "",
+    skills: (r.skills as string[]) ?? [],
+  }));
+}
+
+/**
+ * Real semantic relevance: call the pgvector `search_agents` RPC with a query
+ * embedding and return a map of `${network}:${agentId}` → cosine similarity (0..1).
+ * Passing empty filters so it scores the whole embedded corpus; the broker applies
+ * its own hard filters separately.
+ */
+export async function vectorSearchScores(
+  queryEmbedding: number[],
+  matchCount = 250,
+): Promise<Map<string, number>> {
+  const c = await supa();
+  const { data, error } = await c.rpc("search_agents", {
+    filters: {},
+    query_embedding: vectorLiteral(queryEmbedding),
+    match_count: matchCount,
+  });
+  if (error) throw new Error(`vector search: ${error.message}`);
+  const m = new Map<string, number>();
+  for (const r of (data ?? []) as { network: string; agent_id: string; semantic_score: number | null }[]) {
+    if (r.semantic_score != null) m.set(`${r.network}:${r.agent_id}`, Number(r.semantic_score));
+  }
+  return m;
+}
+
+/** Counts for the embedding backfill: served corpus vs how many are embedded. */
+export async function embeddingStats(): Promise<{ servedTotal: number; withEmbedding: number }> {
+  const c = await supa();
+  const served = await c
+    .from("agents")
+    .select("agent_id", { count: "exact", head: true })
+    .or("trustrank.not.is.null,network.eq.arc");
+  const emb = await c
+    .from("agents")
+    .select("agent_id", { count: "exact", head: true })
+    .not("embedding", "is", null);
+  return { servedTotal: served.count ?? 0, withEmbedding: emb.count ?? 0 };
+}
+
 /** Insert one Arc sign-review into the feedback table (real on-chain review). */
 export async function insertArcFeedback(p: {
   agentId: string;

@@ -8,7 +8,9 @@ import {
   rescoreArc,
   ensNameTaken,
   getAgentByEnsName,
+  setAgentEmbedding,
 } from "@/lib/db";
+import { embedText, agentEmbedText } from "@/lib/llm";
 import {
   sanitizeEnsLabel,
   ensParent,
@@ -193,6 +195,16 @@ const handler = createMcpHandler(
             payToWallet: payTo,
           });
           await rescoreArc();
+          // Embed the agent so semantic search finds it immediately (best-effort).
+          try {
+            const vec = await embedText(
+              agentEmbedText({ name, description, skills: skills ?? [] }),
+              "RETRIEVAL_DOCUMENT",
+            );
+            if (vec) await setAgentEmbedding("arc", agentId, vec);
+          } catch {
+            /* embedding is best-effort; search still works via keyword fallback */
+          }
 
           const records = buildAgentRecords({
             network: "arc",

@@ -71,8 +71,18 @@ export function extractFilters(query: string): SearchFilters {
   };
 }
 
-/** Apply hard filters, then score + sort. Returns AgentSearchResult[]. */
-export function rankAgents(agents: Agent[], filters: SearchFilters): AgentSearchResult[] {
+/**
+ * Apply hard filters, then score + sort. Returns AgentSearchResult[].
+ *
+ * `semanticMap` (optional) maps `${network}:${agentId}` → cosine similarity from
+ * the Vertex-embedding + pgvector path. When present it drives relevance; the
+ * keyword heuristic below is the fallback for agents without an embedding.
+ */
+export function rankAgents(
+  agents: Agent[],
+  filters: SearchFilters,
+  semanticMap?: Map<string, number>,
+): AgentSearchResult[] {
   const candidates = agents.filter((a) => {
     if (filters.requiresX402 && !a.x402Support) return false;
     if (filters.payableOnly && !a.payable) return false;
@@ -94,20 +104,40 @@ export function rankAgents(agents: Agent[], filters: SearchFilters): AgentSearch
   });
 
   const scored = candidates.map((a) => {
-    let semantic = 0.4; // baseline relevance
+    const node = `${a.network}:${a.agentId}`;
+    const cosine = semanticMap?.get(node);
     const reasons: string[] = [];
 
     const skillHits = filters.skills.filter((s) => a.skills.includes(s));
-    if (skillHits.length) {
-      semantic += 0.28 * Math.min(skillHits.length, 2);
-      reasons.push(`matches ${skillHits.join(", ")}`);
-    } else if (filters.skills.length) {
-      // partial: shares a domain word
-      semantic -= 0.05;
+
+    let semantic: number;
+    if (cosine != null) {
+      // Real embedding similarity dominates; a skill match is a light nudge.
+      semantic = 0.1 + 0.85 * cosine;
+      if (skillHits.length) {
+        semantic += 0.04 * Math.min(skillHits.length, 2);
+        reasons.push(`matches ${skillHits.join(", ")}`);
+      }
+      reasons.push(`semantic ${(cosine * 100).toFixed(0)}%`);
+    } else {
+      // Keyword fallback (no embedding for this agent).
+      semantic = 0.4;
+      if (skillHits.length) {
+        semantic += 0.28 * Math.min(skillHits.length, 2);
+        reasons.push(`matches ${skillHits.join(", ")}`);
+      } else if (filters.skills.length) {
+        semantic -= 0.05;
+      }
+      if (filters.freeText) {
+        const tokens = filters.freeText.toLowerCase().split(/\W+/).filter((t) => t.length > 3);
+        const hay = (a.name + " " + a.description).toLowerCase();
+        const overlap = tokens.filter((t) => hay.includes(t)).length;
+        semantic += Math.min(overlap, 4) * 0.04;
+      }
     }
 
     if (filters.minScore != null && a.reputation.scoreNormalized != null) {
-      semantic += (a.reputation.scoreNormalized - filters.minScore) / 200;
+      semantic += (a.reputation.scoreNormalized - filters.minScore) / 400;
       reasons.push(`reputation ${a.reputation.scoreNormalized}/100`);
     }
     if (filters.maxPriceUsdc != null && a.priceUsdc != null) {
@@ -115,14 +145,6 @@ export function rankAgents(agents: Agent[], filters: SearchFilters): AgentSearch
     }
     if (filters.requiresX402 && a.x402Support) reasons.push("accepts x402");
     if (filters.payableOnly && a.payable) reasons.push("live on Arc");
-
-    // free-text token overlap with name/description
-    if (filters.freeText) {
-      const tokens = filters.freeText.toLowerCase().split(/\W+/).filter((t) => t.length > 3);
-      const hay = (a.name + " " + a.description).toLowerCase();
-      const overlap = tokens.filter((t) => hay.includes(t)).length;
-      semantic += Math.min(overlap, 4) * 0.04;
-    }
 
     semantic = Math.max(0.05, Math.min(0.99, semantic));
 

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/recompute",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/embeddings",
+      "schedule": "0 4 * * *"
     }
   ]
 }
