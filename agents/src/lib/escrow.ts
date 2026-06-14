@@ -162,25 +162,28 @@ export class EscrowClient {
     return hash;
   }
 
-  /** claimRebate(jobId): returns the pfand iff fresh non-revoked feedback exists. */
-  async claimRebate(jobId: bigint): Promise<`0x${string}`> {
+  /**
+   * claimRebate(jobId, feedbackIndex): returns the pfand iff that specific fresh,
+   * non-revoked feedback index exists and hasn't already settled another job.
+   */
+  async claimRebate(jobId: bigint, feedbackIndex: bigint): Promise<`0x${string}`> {
     const hash = await this.walletClient.writeContract({
       address: this.addr.rebateEscrow,
       abi: rebateEscrowAbi,
       functionName: "claimRebate",
-      args: [jobId],
+      args: [jobId, feedbackIndex],
     });
     await this.publicClient.waitForTransactionReceipt({ hash });
     log.tx("claimRebate", hash);
     return hash;
   }
 
-  async isRebateClaimable(jobId: bigint): Promise<boolean> {
+  async isRebateClaimable(jobId: bigint, feedbackIndex: bigint): Promise<boolean> {
     return this.publicClient.readContract({
       address: this.addr.rebateEscrow,
       abi: rebateEscrowAbi,
       functionName: "isRebateClaimable",
-      args: [jobId],
+      args: [jobId, feedbackIndex],
     });
   }
 

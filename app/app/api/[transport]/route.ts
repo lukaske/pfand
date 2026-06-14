@@ -293,11 +293,12 @@ const handler = createMcpHandler(
             tag2: review.tag2,
             txHash: review.txHash,
           });
-          // 3. Release the Pfand deposit if a job is open (best-effort).
+          // 3. Release the Pfand deposit if a job is open (best-effort). The claim
+          //    names this review's feedback index, so it can only settle this one job.
           let claimNote = "no job to claim";
           if (jobId) {
             try {
-              const claimTx = await claimRebate(jobId);
+              const claimTx = await claimRebate(jobId, review.feedbackIndex);
               claimNote = `Pfand released (tx ${claimTx.slice(0, 10)}…)`;
             } catch (err) {
               claimNote = `claim failed: ${(err as Error).message}`;

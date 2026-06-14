@@ -41,9 +41,10 @@ contract RebateEscrowTest is Test {
         jobId = escrow.openJob(agentId, serviceAgent, FEE, WINDOW);
     }
 
-    function _giveFeedback(int128 value) internal {
+    function _giveFeedback(int128 value) internal returns (uint64) {
         vm.prank(client);
         reputation.giveFeedback(agentId, value, 0, "audit", "", "https://broker8004/job", "", bytes32(0));
+        return reputation.getLastIndex(agentId, client);
     }
 
     function test_OpenJob_EscrowsPfandOnly() public {
@@ -63,19 +64,19 @@ contract RebateEscrowTest is Test {
     function test_FullPfandLoop_FeedbackUnlocksRebate() public {
         uint256 jobId = _openJob();
 
-        // Cannot claim before feedback.
-        assertFalse(escrow.isRebateClaimable(jobId));
+        // Cannot claim before any matching feedback exists.
+        assertFalse(escrow.isRebateClaimable(jobId, 1));
         vm.prank(client);
-        vm.expectRevert("no fresh feedback");
-        escrow.claimRebate(jobId);
+        vm.expectRevert("no such feedback");
+        escrow.claimRebate(jobId, 1);
 
-        // Post fresh feedback -> pfand becomes claimable.
-        _giveFeedback(95);
-        assertTrue(escrow.isRebateClaimable(jobId));
+        // Post fresh feedback -> pfand becomes claimable at that index.
+        uint64 idx = _giveFeedback(95);
+        assertTrue(escrow.isRebateClaimable(jobId, idx));
 
         uint256 balBefore = usdc.balanceOf(client);
         vm.prank(client);
-        escrow.claimRebate(jobId);
+        escrow.claimRebate(jobId, idx);
 
         assertEq(usdc.balanceOf(client), balBefore + PFAND);
         assertEq(usdc.balanceOf(address(escrow)), 0);
@@ -83,33 +84,54 @@ contract RebateEscrowTest is Test {
 
     function test_StaleFeedback_DoesNotUnlockNewJob() public {
         // Client left feedback once before (a prior interaction).
-        _giveFeedback(80);
+        uint64 oldIdx = _giveFeedback(80);
 
         // New job snapshots the index; the old feedback must not count.
         uint256 jobId = _openJob();
-        assertFalse(escrow.isRebateClaimable(jobId));
+        assertFalse(escrow.isRebateClaimable(jobId, oldIdx));
         vm.prank(client);
-        vm.expectRevert("no fresh feedback");
-        escrow.claimRebate(jobId);
+        vm.expectRevert("stale feedback");
+        escrow.claimRebate(jobId, oldIdx);
 
         // Fresh feedback for this job unlocks it.
-        _giveFeedback(90);
+        uint64 newIdx = _giveFeedback(90);
         vm.prank(client);
-        escrow.claimRebate(jobId);
+        escrow.claimRebate(jobId, newIdx);
         assertEq(usdc.balanceOf(address(escrow)), 0);
     }
 
     function test_RevokedFeedback_DoesNotUnlock() public {
         uint256 jobId = _openJob();
 
-        _giveFeedback(90); // index 1
+        uint64 idx = _giveFeedback(90); // index 1
         vm.prank(client);
-        reputation.revokeFeedback(agentId, 1);
+        reputation.revokeFeedback(agentId, idx);
 
-        assertFalse(escrow.isRebateClaimable(jobId));
+        assertFalse(escrow.isRebateClaimable(jobId, idx));
         vm.prank(client);
-        vm.expectRevert("no fresh feedback");
-        escrow.claimRebate(jobId);
+        vm.expectRevert("feedback revoked");
+        escrow.claimRebate(jobId, idx);
+    }
+
+    function test_ConcurrentJobs_OneReviewReleasesOneJob() public {
+        // Same client opens two jobs for the same agent (e.g. a broker for two users).
+        uint256 jobA = _openJob();
+        uint256 jobB = _openJob();
+
+        // A single review must NOT unlock both deposits.
+        uint64 idx1 = _giveFeedback(90);
+        vm.prank(client);
+        escrow.claimRebate(jobA, idx1);
+
+        vm.prank(client);
+        vm.expectRevert("feedback already used");
+        escrow.claimRebate(jobB, idx1);
+
+        // A second, distinct review is required to release the second deposit.
+        uint64 idx2 = _giveFeedback(85);
+        vm.prank(client);
+        escrow.claimRebate(jobB, idx2);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
     }
 
     function test_Forfeit_AfterDeadlineNoFeedback() public {
@@ -135,19 +157,19 @@ contract RebateEscrowTest is Test {
 
     function test_OnlyClientCanClaim() public {
         uint256 jobId = _openJob();
-        _giveFeedback(90);
+        uint64 idx = _giveFeedback(90);
         vm.prank(serviceAgent);
         vm.expectRevert("only client");
-        escrow.claimRebate(jobId);
+        escrow.claimRebate(jobId, idx);
     }
 
     function test_CannotClaimTwice() public {
         uint256 jobId = _openJob();
-        _giveFeedback(90);
+        uint64 idx = _giveFeedback(90);
         vm.prank(client);
-        escrow.claimRebate(jobId);
+        escrow.claimRebate(jobId, idx);
         vm.prank(client);
         vm.expectRevert("not open");
-        escrow.claimRebate(jobId);
+        escrow.claimRebate(jobId, idx);
     }
 }

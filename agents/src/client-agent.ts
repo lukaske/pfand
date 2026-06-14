@@ -136,11 +136,12 @@ export async function runEscrowLifecycle(
   const idxAfter = await escrow.lastFeedbackIndex(target.agentId, clientAddr);
   log.ok(`Feedback posted (${taskTag} → ${outcome}, score ${target.score}/100), feedback index ${idxBefore} → ${idxAfter}.`);
 
-  // claimRebate — returns the pfand iff fresh non-revoked feedback exists
-  const claimable = await escrow.isRebateClaimable(opened.jobId);
+  // claimRebate — returns the pfand iff this exact fresh feedback index exists and
+  // hasn't already settled another job. idxAfter is the index just minted above.
+  const claimable = await escrow.isRebateClaimable(opened.jobId, idxAfter);
   log.detail("isRebateClaimable", String(claimable));
   if (claimable) {
-    res.txHashes.claim = await escrow.claimRebate(opened.jobId);
+    res.txHashes.claim = await escrow.claimRebate(opened.jobId, idxAfter);
     res.pfandReturned = true;
     log.ok(`Pfand ${formatUsdc6(pfand)} reclaimed to client ${clientAddr}.`);
     await escrow.logDepositState(opened.jobId);

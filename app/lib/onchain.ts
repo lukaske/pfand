@@ -70,6 +70,7 @@ export interface ReviewResult {
   value: number; // +1 / 0 / -1
   tag1: string; // task
   tag2: string; // state
+  feedbackIndex: string; // the on-chain ERC-8004 index of this review
 }
 
 /** Post an ERC-8004 sign review for `agentId` on Arc. */
@@ -90,13 +91,34 @@ export async function postReview(
     functionName: "giveFeedback",
     args: [BigInt(agentId), value, 0, tag1, state, endpoint || "", uri, feedbackHash],
   });
-  await pub.waitForTransactionReceipt({ hash: txHash });
+  const rcpt = await pub.waitForTransactionReceipt({ hash: txHash });
+  // Pull the feedback index out of the NewFeedback event so the caller can bind
+  // it to a specific escrow job when claiming the Pfand.
+  let feedbackIndex = "";
+  for (const log of rcpt.logs) {
+    try {
+      const d = decodeEventLog({
+        abi: reputationRegistryAbi,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (d.eventName === "NewFeedback") {
+        feedbackIndex = (
+          d.args as { feedbackIndex: bigint }
+        ).feedbackIndex.toString();
+        break;
+      }
+    } catch {
+      /* not our event */
+    }
+  }
   return {
     txHash,
     client: account.address.toLowerCase(),
     value: Number(value),
     tag1,
     tag2: state,
+    feedbackIndex,
   };
 }
 
@@ -220,14 +242,20 @@ export async function registerAgent(
   return { agentId, txHash, agentURI };
 }
 
-/** Claim the Pfand back for a job (requires fresh feedback to exist). */
-export async function claimRebate(jobId: string): Promise<string> {
+/**
+ * Claim the Pfand back for a job by naming the specific feedback index that pays it
+ * off. That index is consumed on-chain, so one review can release only one job.
+ */
+export async function claimRebate(
+  jobId: string,
+  feedbackIndex: string,
+): Promise<string> {
   const { wallet, pub } = clients();
   const txHash = await wallet.writeContract({
     address: ESCROW!,
     abi: rebateEscrowAbi,
     functionName: "claimRebate",
-    args: [BigInt(jobId)],
+    args: [BigInt(jobId), BigInt(feedbackIndex)],
   });
   await pub.waitForTransactionReceipt({ hash: txHash });
   return txHash;

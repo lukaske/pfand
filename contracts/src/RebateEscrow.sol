@@ -22,8 +22,14 @@ import "@erc8004/interfaces/IReputationRegistry.sol";
  * payment: an index built on these signals is strictly harder to fake than one scraped
  * from permissionless feedback events.
  *
- * "Fresh" = the client's last feedback index for the agent must be strictly greater than
- * it was when the job opened, so old/recycled feedback can't unlock a new deposit.
+ * "Fresh" = the feedback index used to claim must be strictly greater than the client's
+ * last index when the job opened, so old/recycled feedback can't unlock a new deposit.
+ *
+ * Each feedback index can release at most ONE job: the client names the specific index
+ * when claiming and the contract marks it consumed. This is what makes the bond honest
+ * under concurrency — if the same client opens N jobs for one agent (e.g. a broker acting
+ * for many users), they must post N distinct reviews to reclaim all N deposits; a single
+ * review can't unlock them all.
  */
 contract RebateEscrow is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -55,6 +61,10 @@ contract RebateEscrow is ReentrancyGuard {
 
     uint256 public nextJobId = 1;
     mapping(uint256 => Job) public jobs;
+
+    /// @dev (client, agentId, feedbackIndex) => already used to claim a Pfand.
+    ///      Ensures one review can release at most one job.
+    mapping(address => mapping(uint256 => mapping(uint64 => bool))) public consumed;
 
     event JobOpened(
         uint256 indexed jobId,
@@ -117,30 +127,41 @@ contract RebateEscrow is ReentrancyGuard {
     }
 
     /**
-     * @notice Reclaim the Pfand by having posted fresh, non-revoked feedback about the agent.
+     * @notice Reclaim the Pfand by naming the specific fresh, non-revoked, unused feedback
+     *         entry that closes this job. That index is then consumed so it can't release
+     *         another job for the same agent.
+     * @param jobId the open job.
+     * @param feedbackIndex the client's ERC-8004 feedback index for this agent that pays off
+     *        this job (must be > the index snapshotted at openJob, not revoked, not yet used).
      */
-    function claimRebate(uint256 jobId) external nonReentrant {
+    function claimRebate(uint256 jobId, uint64 feedbackIndex) external nonReentrant {
         Job storage j = jobs[jobId];
         require(j.status == Status.Open, "not open");
         require(msg.sender == j.client, "only client");
+        require(feedbackIndex > j.feedbackIndexAtOpen, "stale feedback");
+        require(feedbackIndex <= reputation.getLastIndex(j.agentId, j.client), "no such feedback");
+        require(!consumed[j.client][j.agentId][feedbackIndex], "feedback already used");
+        (,,,, bool isRevoked) = reputation.readFeedback(j.agentId, j.client, feedbackIndex);
+        require(!isRevoked, "feedback revoked");
 
-        uint64 lastIndex = _freshFeedbackIndex(j.agentId, j.client, j.feedbackIndexAtOpen);
-        require(lastIndex > 0, "no fresh feedback");
-
+        consumed[j.client][j.agentId][feedbackIndex] = true;
         j.status = Status.Settled;
         usdc.safeTransfer(j.client, j.pfand);
 
-        emit RebateClaimed(jobId, j.client, j.pfand, lastIndex);
+        emit RebateClaimed(jobId, j.client, j.pfand, feedbackIndex);
     }
 
     /**
-     * @notice After the deadline with no fresh feedback, forfeit the Pfand to the treasury.
+     * @notice After the deadline, forfeit the Pfand to the treasury if the client posted no
+     *         new feedback for the agent during the window (a full no-show). If they reviewed
+     *         at all, they keep the right to reclaim by naming an unused index — the treasury
+     *         can't grab a bond from a client who has been leaving reviews.
      */
     function forfeitPfand(uint256 jobId) external nonReentrant {
         Job storage j = jobs[jobId];
         require(j.status == Status.Open, "not open");
         require(block.timestamp > j.feedbackDeadline, "deadline not passed");
-        require(_freshFeedbackIndex(j.agentId, j.client, j.feedbackIndexAtOpen) == 0, "client can claim");
+        require(reputation.getLastIndex(j.agentId, j.client) <= j.feedbackIndexAtOpen, "client can claim");
 
         j.status = Status.Settled;
         usdc.safeTransfer(treasury, j.pfand);
@@ -148,26 +169,14 @@ contract RebateEscrow is ReentrancyGuard {
         emit RebateForfeited(jobId, treasury, j.pfand);
     }
 
-    /// @notice View helper for UIs/agents: is the pfand currently claimable?
-    function isRebateClaimable(uint256 jobId) external view returns (bool) {
+    /// @notice View helper: can `feedbackIndex` currently be used to claim `jobId`?
+    function isRebateClaimable(uint256 jobId, uint64 feedbackIndex) external view returns (bool) {
         Job storage j = jobs[jobId];
         if (j.status != Status.Open) return false;
-        return _freshFeedbackIndex(j.agentId, j.client, j.feedbackIndexAtOpen) > 0;
-    }
-
-    /**
-     * @dev Returns the client's last feedback index if it is fresh (> snapshot) and not revoked,
-     *      otherwise 0. One staticcall to getLastIndex + one to readFeedback.
-     */
-    function _freshFeedbackIndex(uint256 agentId, address client, uint64 indexAtOpen)
-        internal
-        view
-        returns (uint64)
-    {
-        uint64 lastIndex = reputation.getLastIndex(agentId, client);
-        if (lastIndex <= indexAtOpen) return 0;
-        (,,,, bool isRevoked) = reputation.readFeedback(agentId, client, lastIndex);
-        if (isRevoked) return 0;
-        return lastIndex;
+        if (feedbackIndex <= j.feedbackIndexAtOpen) return false;
+        if (feedbackIndex > reputation.getLastIndex(j.agentId, j.client)) return false;
+        if (consumed[j.client][j.agentId][feedbackIndex]) return false;
+        (,,,, bool isRevoked) = reputation.readFeedback(j.agentId, j.client, feedbackIndex);
+        return !isRevoked;
     }
 }
