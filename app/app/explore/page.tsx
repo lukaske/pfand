@@ -50,6 +50,7 @@ import {
   type AgentFilters,
 } from "@/lib/api";
 import { agentName, formatCount, formatUsdc } from "@/lib/format";
+import { RecomputeButton } from "@/components/recompute-button";
 import { ALL_SKILLS } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 
@@ -111,17 +112,21 @@ export default function ExplorePage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">
         {/* Header */}
-        <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">
-            ERC-8004 Explorer
-          </p>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Every agent, ranked by paid reputation.
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Live index of Registered and NewFeedback events across mainnet and Arc.
-            Reputation is payment-backed — each signal is tied to a settled job.
-          </p>
+        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-700 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-signal-ink">
+              ERC-8004 Explorer
+            </p>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Every agent, ranked by paid reputation.
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Live index of Registered and NewFeedback events across mainnet and
+              Arc. Reputation is payment-backed — each signal is tied to a settled
+              job.
+            </p>
+          </div>
+          <RecomputeButton />
         </div>
 
         {/* Stat tiles */}
@@ -324,9 +329,15 @@ export default function ExplorePage() {
                                 {agentName(a)}
                                 <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                               </div>
-                              <div className="truncate font-mono text-[10px] text-muted-foreground">
-                                {a.ensName || `#${a.agentId}`}
-                              </div>
+                              {a.ensName ? (
+                                <div className="truncate font-mono text-[10px] font-medium text-signal-ink">
+                                  {a.ensName}
+                                </div>
+                              ) : (
+                                <div className="truncate font-mono text-[10px] text-muted-foreground">
+                                  #{a.agentId}
+                                </div>
+                              )}
                             </div>
                           </Link>
                         </TableCell>
