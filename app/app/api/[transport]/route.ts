@@ -122,7 +122,8 @@ const handler = createMcpHandler(
         let escrowNote = "escrow unavailable";
         if (onchainConfigured()) {
           try {
-            const job = await openEscrowJob(ref.agentId, ref.serviceWallet, 0);
+            // Small fee → a real 0.05 USDC Pfand bond, returned on review.
+            const job = await openEscrowJob(ref.agentId, ref.serviceWallet, 0.5);
             jobId = job.jobId;
             escrowNote = `Pfand job #${jobId} opened on Arc (tx ${job.txHash.slice(0, 10)}…)`;
           } catch (err) {
