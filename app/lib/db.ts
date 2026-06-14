@@ -230,16 +230,23 @@ export async function getAgents(): Promise<Agent[]> {
   if (!hasSupabase()) return getScoredAgents();
   try {
     const client = await supa();
-    const { data, error } = await client
-      .from("agents")
-      .select(AGENT_COLS)
-      // rated agents (mainnet) PLUS every Arc agent (our live brokered agents,
-      // shown even before they've earned a TrustRank).
-      .or("trustrank.not.is.null,network.eq.arc")
-      .order("trustrank", { ascending: false, nullsFirst: false })
-      .limit(2000);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as unknown as AgentDbRow[];
+    // Rated agents (mainnet), PLUS every Arc agent (our live brokered agents,
+    // shown even before they've earned a TrustRank). Two queries — robust vs
+    // PostgREST's quirky `or(is.null)` handling.
+    const [ratedRes, arcRes] = await Promise.all([
+      client
+        .from("agents")
+        .select(AGENT_COLS)
+        .not("trustrank", "is", null)
+        .order("trustrank", { ascending: false, nullsFirst: false })
+        .limit(2000),
+      client.from("agents").select(AGENT_COLS).eq("network", "arc"),
+    ]);
+    if (ratedRes.error) throw new Error(ratedRes.error.message);
+    const rows = [
+      ...((arcRes.data ?? []) as unknown as AgentDbRow[]),
+      ...((ratedRes.data ?? []) as unknown as AgentDbRow[]),
+    ];
     if (rows.length === 0) return getScoredAgents();
     return rows.map(rowToAgent);
   } catch (err) {
