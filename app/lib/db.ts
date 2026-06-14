@@ -233,7 +233,9 @@ export async function getAgents(): Promise<Agent[]> {
     const { data, error } = await client
       .from("agents")
       .select(AGENT_COLS)
-      .not("trustrank", "is", null)
+      // rated agents (mainnet) PLUS every Arc agent (our live brokered agents,
+      // shown even before they've earned a TrustRank).
+      .or("trustrank.not.is.null,network.eq.arc")
       .order("trustrank", { ascending: false, nullsFirst: false })
       .limit(2000);
     if (error) throw new Error(error.message);
@@ -302,6 +304,8 @@ export async function getAgent(
       .from("agents")
       .select(AGENT_COLS)
       .eq("agent_id", id)
+      // agentIds collide across chains; prefer our Arc agents ("arc" < "mainnet").
+      .order("network", { ascending: true })
       .limit(1);
     if (aErr) throw new Error(aErr.message);
     const row = (aData ?? [])[0] as unknown as AgentDbRow | undefined;
