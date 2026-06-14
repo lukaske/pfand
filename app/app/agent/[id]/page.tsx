@@ -5,21 +5,30 @@ import Link from "next/link";
 import {
   ArrowLeft,
   BadgeCheck,
+  Bot,
   ExternalLink,
   Hash,
   Wallet,
   Zap,
 } from "lucide-react";
-import type { FeedbackEntry } from "@pfand/shared";
+import type { AgentNetwork, FeedbackEntry } from "@pfand/shared";
 import { SiteHeader } from "@/components/site-header";
 import { NetworkBadge } from "@/components/network-badge";
 import { ReputationBadge, scoreColor } from "@/components/reputation-badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useAgent } from "@/lib/api";
-import { formatScore, formatUsdc, shortAddress } from "@/lib/format";
+import {
+  agentInitials,
+  agentName,
+  explorerTxUrl,
+  formatScore,
+  formatUsdc,
+  shortAddress,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function AgentDetailPage({
@@ -73,32 +82,42 @@ export default function AgentDetailPage({
             {/* Identity block */}
             <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_300px]">
               <div className="animate-in fade-in slide-in-from-bottom-3 duration-700">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-                    {agent.name}
-                  </h1>
-                  <NetworkBadge network={agent.network} />
-                  {agent.x402Support && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1 border-transparent bg-signal-wash font-mono text-[10px] uppercase tracking-wider text-signal-ink"
-                    >
-                      <Zap className="h-2.5! w-2.5!" /> x402
-                    </Badge>
-                  )}
-                  {agent.payable && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1.5 border-pfand-returned/30 font-mono text-[10px] text-pfand-returned"
-                    >
-                      <span className="size-1.5 rounded-full bg-pfand-returned" />
-                      live on Arc
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-4">
+                  <Avatar className="h-14 w-14 shrink-0 rounded-xl border border-border shadow-soft-sm">
+                    <AvatarImage src={agent.image ?? undefined} alt={agentName(agent)} />
+                    <AvatarFallback className="rounded-xl bg-muted font-mono text-xs text-muted-foreground">
+                      {agent.name ? agentInitials(agent.name) : <Bot className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+                        {agentName(agent)}
+                      </h1>
+                      <NetworkBadge network={agent.network} />
+                      {agent.x402Support && (
+                        <Badge
+                          variant="outline"
+                          className="gap-1 border-transparent bg-signal-wash font-mono text-[10px] uppercase tracking-wider text-signal-ink"
+                        >
+                          <Zap className="h-2.5! w-2.5!" /> x402
+                        </Badge>
+                      )}
+                      {agent.payable && (
+                        <Badge
+                          variant="outline"
+                          className="gap-1.5 border-pfand-returned/30 font-mono text-[10px] text-pfand-returned"
+                        >
+                          <span className="size-1.5 rounded-full bg-pfand-returned" />
+                          live on Arc
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 font-mono text-sm text-signal-ink">
+                      {agent.ensName || `#${agent.agentId}`}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 font-mono text-sm text-signal-ink">
-                  {agent.ensName}
-                </p>
                 <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {agent.description}
                 </p>
@@ -334,9 +353,10 @@ function FeedbackRow({ f }: { f: FeedbackEntry }) {
       </span>
       {f.txHash && (
         <a
-          href={`https://explorer.arc.network/tx/${f.txHash}`}
+          href={explorerTxUrl(f.network, f.txHash)}
           target="_blank"
           rel="noreferrer"
+          title={`View on ${f.network === "mainnet" ? "Etherscan" : "Arcscan"}`}
           className="shrink-0 text-muted-foreground transition-colors hover:text-signal-ink"
         >
           <ExternalLink className="h-3.5 w-3.5" />

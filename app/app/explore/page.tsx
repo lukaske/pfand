@@ -6,6 +6,8 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
+  BadgeCheck,
+  Bot,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -47,7 +49,7 @@ import {
   useStats,
   type AgentFilters,
 } from "@/lib/api";
-import { formatCount, formatUsdc } from "@/lib/format";
+import { agentName, formatCount, formatUsdc } from "@/lib/format";
 import { ALL_SKILLS } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +75,7 @@ export default function ExplorePage() {
     sort: "score",
   });
   const [dir, setDir] = useState<"desc" | "asc">("desc");
+  const [cardOnly, setCardOnly] = useState(false);
   const [page, setPage] = useState(0);
 
   const stats = useStats();
@@ -89,10 +92,12 @@ export default function ExplorePage() {
   }
 
   // The API returns the active sort key descending; reverse it for ascending.
+  // `cardOnly` hides bare NFTs (agents with no resolvable identity card).
   const sorted = useMemo(() => {
-    const list = agents.data?.agents ?? [];
+    let list = agents.data?.agents ?? [];
+    if (cardOnly) list = list.filter((a) => a.name);
     return dir === "asc" ? [...list].reverse() : list;
-  }, [agents.data, dir]);
+  }, [agents.data, dir, cardOnly]);
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -214,6 +219,24 @@ export default function ExplorePage() {
                 x402
               </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  setCardOnly((v) => !v);
+                  setPage(0);
+                }}
+                title="Hide bare NFTs (agents with no identity card)"
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 font-mono text-xs transition-colors",
+                  cardOnly
+                    ? "border-transparent bg-signal-wash text-signal-ink"
+                    : "border-border text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Has card
+              </button>
+
               <div className="ml-auto flex items-center gap-2">
                 <Select
                   value={filters.sort}
@@ -289,16 +312,20 @@ export default function ExplorePage() {
                                 alt={a.name}
                               />
                               <AvatarFallback className="rounded-lg bg-muted font-mono text-[9px] text-muted-foreground">
-                                {initials(a.name)}
+                                {a.name ? (
+                                  initials(a.name)
+                                ) : (
+                                  <Bot className="h-3.5 w-3.5" />
+                                )}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 font-display text-sm font-semibold text-foreground">
-                                {a.name}
-                                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                              <div className="flex items-center gap-1.5 truncate font-display text-sm font-semibold text-foreground">
+                                {agentName(a)}
+                                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                               </div>
                               <div className="truncate font-mono text-[10px] text-muted-foreground">
-                                {a.ensName}
+                                {a.ensName || `#${a.agentId}`}
                               </div>
                             </div>
                           </Link>

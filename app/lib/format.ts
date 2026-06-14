@@ -33,3 +33,35 @@ export function formatCount(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toString();
 }
+
+/** Display name for an agent — its card name, or `Agent #<id>` for bare NFTs. */
+export function agentName(a: { name: string; agentId: string }): string {
+  return a.name?.trim() || `Agent #${a.agentId}`;
+}
+
+/** Two-letter avatar fallback from a name (empty → ""). */
+export function agentInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+/** Block explorer tx URL for the agent's network (Etherscan for mainnet, Arcscan for Arc). */
+export function explorerTxUrl(
+  network: "mainnet" | "arc",
+  txHash: string,
+): string {
+  return network === "mainnet"
+    ? `https://etherscan.io/tx/${txHash}`
+    : `https://testnet.arcscan.app/tx/${txHash}`;
+}
+
+/** Block explorer address URL for the agent's network. */
+export function explorerAddressUrl(
+  network: "mainnet" | "arc",
+  address: string,
+): string {
+  return network === "mainnet"
+    ? `https://etherscan.io/address/${address}`
+    : `https://testnet.arcscan.app/address/${address}`;
+}

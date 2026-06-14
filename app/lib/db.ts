@@ -221,10 +221,10 @@ async function fetchAllFeedback(): Promise<FeedbackDbRow[]> {
 /* ------------------------------- public --------------------------------- */
 
 /**
- * Display agents: the real on-chain agents that have resolvable metadata
- * (a name) — the others are bare NFTs with no card. Ordered by TrustRank,
- * capped so the payload stays small. Scores are precomputed in the DB.
- * Falls back to the seed corpus when Supabase isn't configured.
+ * Display agents: every RATED on-chain agent (has a TrustRank). Named agents
+ * show their card; the rest render as `Agent #<id>` bare NFTs. Ordered by
+ * TrustRank desc, capped. Scores are precomputed in the DB. Falls back to the
+ * seed corpus when Supabase isn't configured.
  */
 export async function getAgents(): Promise<Agent[]> {
   if (!hasSupabase()) return getScoredAgents();
@@ -233,10 +233,9 @@ export async function getAgents(): Promise<Agent[]> {
     const { data, error } = await client
       .from("agents")
       .select(AGENT_COLS)
-      .neq("name", "")
-      .not("name", "is", null)
+      .not("trustrank", "is", null)
       .order("trustrank", { ascending: false, nullsFirst: false })
-      .limit(600);
+      .limit(2000);
     if (error) throw new Error(error.message);
     const rows = (data ?? []) as unknown as AgentDbRow[];
     if (rows.length === 0) return getScoredAgents();

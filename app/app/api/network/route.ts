@@ -41,8 +41,9 @@ export async function GET(req: NextRequest) {
       vol.set(t.tag, (vol.get(t.tag) ?? 0) + t.count);
   const tasks = [...vol.entries()].sort((x, y) => y[1] - x[1]).map(([t]) => t);
 
-  // --- node set: rated agents, optionally restricted to a task category ---
-  let rated = agents.filter((a) => a.reputation.trustRank != null);
+  // --- node set: rated, NAMED agents (the constellation needs readable labels),
+  // optionally restricted to a task category ---
+  let rated = agents.filter((a) => a.reputation.trustRank != null && a.name);
 
   if (task) {
     rated = rated.filter((a) =>

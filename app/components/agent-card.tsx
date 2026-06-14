@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { NetworkBadge } from "@/components/network-badge";
 import { ReputationBadge } from "@/components/reputation-badge";
-import { formatUsdc, shortAddress } from "@/lib/format";
+import { agentName, formatUsdc, shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 function isSearchResult(a: Agent | AgentSearchResult): a is AgentSearchResult {
@@ -150,7 +150,7 @@ export function AgentCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="truncate font-display text-lg font-semibold text-foreground">
-                {agent.name}
+                {agentName(agent)}
               </h3>
               {agent.x402Support && (
                 <Badge
