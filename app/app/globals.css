@@ -185,3 +185,32 @@
 @media (prefers-reduced-motion: reduce) {
   .pfand-cursor--blink { animation: none; opacity: 1; }
 }
+
+/* ── Methodology page animations ──────────────────────────────────────── */
+/* Trust flowing along graph edges (animated dashes). */
+@keyframes trust-flow { to { stroke-dashoffset: -64; } }
+.trust-flow { stroke-dasharray: 5 7; animation: trust-flow 1.6s linear infinite; }
+.trust-flow--slow { animation-duration: 2.6s; }
+.trust-flow--pay { stroke-dasharray: 2 6; animation-duration: 2.1s; }
+
+/* Orbiting token around the Pfand enforcement loop. */
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+.orbit-ring { animation: orbit-spin 7s linear infinite; }
+
+/* Pulsing trust-root node. */
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+.node-pulse { animation: node-pulse 2.8s ease-in-out infinite; transform-origin: center; }
+
+/* Soft halo ring expanding from the HUMAN root. */
+@keyframes halo {
+  0% { opacity: 0.5; r: 26; }
+  100% { opacity: 0; r: 60; }
+}
+.halo { animation: halo 2.8s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .trust-flow, .orbit-ring, .node-pulse, .halo { animation: none; }
+}
