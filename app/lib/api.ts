@@ -18,7 +18,6 @@ import type {
   IndexStats,
   SearchFilters,
 } from "@pfand/shared";
-import type { DemoRunResponse } from "./demo-types";
 
 export interface AgentFilters {
   network?: "all" | "mainnet" | "arc";
@@ -164,11 +163,5 @@ export function useActivity(): UseQueryResult<ActivityBucket[]> {
       );
       return data.activity;
     },
-  });
-}
-
-export function useDemoRun() {
-  return useMutation({
-    mutationFn: () => postJSON<DemoRunResponse>("/api/demo/run", {}),
   });
 }

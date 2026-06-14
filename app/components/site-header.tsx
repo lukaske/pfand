@@ -6,8 +6,7 @@ const NAV = [
   { href: "/explore", label: "Explore" },
   { href: "/network", label: "Network" },
   { href: "/search", label: "Broker" },
-  { href: "/methodology", label: "Method" },
-  { href: "/demo", label: "Live Demo" },
+  { href: "/methodology", label: "Methodology" },
 ];
 
 export function SiteHeader() {
@@ -47,10 +46,10 @@ export function SiteHeader() {
             ARC TESTNET
           </Badge>
           <Link
-            href="/demo"
+            href="/network"
             className="rounded-xl bg-signal px-3 py-1.5 font-mono text-xs font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
           >
-            Run the loop →
+            See the graph →
           </Link>
         </div>
       </div>

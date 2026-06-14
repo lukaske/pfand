@@ -214,7 +214,7 @@ function BrokerResult({
 
       <div className="flex flex-col gap-1">
         <Link
-          href={result.payable ? `/agent/${result.agentId}` : "/demo"}
+          href={`/agent/${result.agentId}`}
           className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-signal px-3 font-mono text-xs font-semibold text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
         >
           Hire on Arc

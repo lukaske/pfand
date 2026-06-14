@@ -177,10 +177,10 @@ export default function AgentDetailPage({
                 </div>
                 {agent.payable ? (
                   <Link
-                    href="/demo"
+                    href="/search"
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-signal font-mono text-sm font-semibold whitespace-nowrap text-signal-foreground shadow-soft-sm transition-opacity hover:opacity-90"
                   >
-                    Hire on Arc →
+                    Hire via Broker →
                   </Link>
                 ) : (
                   <div className="inline-flex h-10 items-center justify-center rounded-xl border border-border font-mono text-xs text-muted-foreground">
