@@ -23,17 +23,95 @@ export interface AgentRecordSource {
 }
 
 /**
- * ERC-7930 interoperable address of an Ethereum-mainnet 20-byte address:
- *   version(0001) + chainType eip155(0000) + refLen(01) + ref mainnet(01) + addrLen(14) + addr
- * Matches the ENSIP-25 canonical example for 0x8004A169…a432.
+ * ERC-7930 interoperable address of an EVM (eip155) 20-byte address:
+ *   version(0001) + chainType eip155(0000) + chainRefLen + chainRef(minimal BE) + addrLen(14) + addr
+ * For mainnet (chainId 1) this is the ENSIP-25 canonical `0x00010000010114…` form.
  */
-export function erc7930Mainnet(address: Address): `0x${string}` {
+export function erc7930(chainId: number, address: Address): `0x${string}` {
   const addr = getAddress(address).slice(2).toLowerCase();
-  return (`0x00010000010114` + addr) as `0x${string}`;
+  let ref = chainId.toString(16);
+  if (ref.length % 2) ref = "0" + ref; // pad to whole bytes
+  const refLen = (ref.length / 2).toString(16).padStart(2, "0");
+  return (`0x0001` + `0000` + refLen + ref + `14` + addr) as `0x${string}`;
+}
+
+export function erc7930Mainnet(address: Address): `0x${string}` {
+  return erc7930(1, address);
+}
+
+/** Arc Testnet ERC-8004 IdentityRegistry as an ERC-7930 address (chainId 5042002). */
+export function arcRegistry7930(): `0x${string}` | null {
+  const reg = process.env.ARC_IDENTITY_REGISTRY as Address | undefined;
+  return reg ? erc7930(5042002, reg) : null;
 }
 
 export function agentRegistrationKey(registry7930: `0x${string}`, agentId: string | number): string {
   return `agent-registration[${registry7930}][${agentId}]`;
+}
+
+/** The ENS parent the gateway is authoritative for (wildcard `*.<parent>`). */
+export function ensParent(): string {
+  return process.env.ENS_PARENT_NAME ?? "agent8004.eth";
+}
+
+/** Sanitize an arbitrary agent name into a valid ENS label (a-z0-9-, 1..40 chars). */
+export function sanitizeEnsLabel(name: string): string {
+  const base = (name || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+  return base || "agent";
+}
+
+export interface AgentRecordInput {
+  network: "arc" | "mainnet";
+  agentId: string | number;
+  addr: Address | null;
+  name: string;
+  description?: string;
+  skills?: string[];
+  image?: string | null;
+  url?: string | null;
+  endpoints?: Partial<Record<"mcp" | "a2a" | "web", string>>;
+  /** optional one-line trust summary appended to agent-context */
+  trustNote?: string;
+}
+
+/**
+ * Build the ENSIP-25 + ENSIP-26 record set for one agent. The
+ * `agent-registration[...]` key points at the agent's REAL on-chain registry
+ * (Arc for MCP-registered agents, mainnet for the seed set), so the ENS name is
+ * cryptographically tied to a verifiable ERC-8004 identity — not a vanity label.
+ */
+export function buildAgentRecords(a: AgentRecordInput): AgentRecords {
+  const registry7930 =
+    a.network === "arc" ? arcRegistry7930() : erc7930Mainnet(ERC8004_MAINNET.identityRegistry as Address);
+
+  const contextParts = [
+    `${a.name} (ERC-8004 #${a.agentId} on ${a.network}).`,
+    a.description?.trim(),
+    a.skills?.length ? `Skills: ${a.skills.join(", ")}.` : "",
+    a.trustNote?.trim(),
+  ].filter(Boolean);
+
+  const text: Record<string, string> = {
+    "agent-context": contextParts.join(" "),
+    "agent-name": a.name,
+  };
+  if (registry7930) text[agentRegistrationKey(registry7930, a.agentId)] = "1";
+  if (a.description?.trim()) text["agent-description"] = a.description.trim();
+  if (a.image) text["avatar"] = a.image;
+  const web = a.endpoints?.web ?? a.url ?? undefined;
+  if (a.endpoints?.mcp) text["agent-endpoint[mcp]"] = a.endpoints.mcp;
+  if (a.endpoints?.a2a) text["agent-endpoint[a2a]"] = a.endpoints.a2a;
+  if (web) {
+    text["agent-endpoint[web]"] = web;
+    text["url"] = web;
+  }
+  return { addr: a.addr, text };
 }
 
 interface SeedAgent {
@@ -93,24 +171,69 @@ const SEED: Record<string, SeedAgent> = {
   },
 };
 
-const MAINNET_REGISTRY_7930 = erc7930Mainnet(ERC8004_MAINNET.identityRegistry as Address);
-
 export class SeedRecordSource implements AgentRecordSource {
   async resolve(label: string): Promise<AgentRecords | null> {
     const agent = SEED[label.toLowerCase()];
     if (!agent) return null;
-    const text: Record<string, string> = {
-      [agentRegistrationKey(MAINNET_REGISTRY_7930, agent.agentId)]: "1",
-      "agent-context": agent.context,
-    };
-    if (agent.endpoints.mcp) text["agent-endpoint[mcp]"] = agent.endpoints.mcp;
-    if (agent.endpoints.a2a) text["agent-endpoint[a2a]"] = agent.endpoints.a2a;
-    if (agent.endpoints.web) text["agent-endpoint[web]"] = agent.endpoints.web;
-    return { addr: agent.addr, text };
+    return buildAgentRecords({
+      network: "mainnet",
+      agentId: agent.agentId,
+      addr: agent.addr,
+      name: label,
+      description: agent.context,
+      endpoints: agent.endpoints,
+    });
   }
 }
 
-export const recordSource: AgentRecordSource = new SeedRecordSource();
+/**
+ * Resolves agents that registered themselves through the Pfand MCP (written to
+ * Supabase with an `ens_name`). This is what makes registration → ENS name
+ * instant and fully dynamic — no hard-coded labels, no Sepolia transaction.
+ */
+export class DbRecordSource implements AgentRecordSource {
+  async resolve(label: string): Promise<AgentRecords | null> {
+    const ensName = `${label.toLowerCase()}.${ensParent()}`;
+    const { getAgentByEnsName } = await import("../db");
+    const a = await getAgentByEnsName(ensName);
+    if (!a) return null;
+    return buildAgentRecords({
+      network: a.network,
+      agentId: a.agentId,
+      addr: (a.addr as Address) ?? null,
+      name: a.name,
+      description: a.description,
+      skills: a.skills,
+      image: a.image,
+      endpoints: a.endpoints,
+      trustNote:
+        typeof a.trustRank === "number"
+          ? `TrustRank ${a.trustRank.toFixed(2)} (${a.distinctReviews} reviews).`
+          : undefined,
+    });
+  }
+}
+
+/** Try self-registered agents first, then the curated mainnet seed set. */
+export class CompositeRecordSource implements AgentRecordSource {
+  constructor(private sources: AgentRecordSource[]) {}
+  async resolve(label: string): Promise<AgentRecords | null> {
+    for (const s of this.sources) {
+      try {
+        const r = await s.resolve(label);
+        if (r) return r;
+      } catch {
+        /* a failing source must not break resolution */
+      }
+    }
+    return null;
+  }
+}
+
+export const recordSource: AgentRecordSource = new CompositeRecordSource([
+  new DbRecordSource(),
+  new SeedRecordSource(),
+]);
 
 export async function resolveAgentRecords(label: string): Promise<AgentRecords | null> {
   return recordSource.resolve(label);

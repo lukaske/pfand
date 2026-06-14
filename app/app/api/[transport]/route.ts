@@ -6,7 +6,15 @@ import {
   insertArcFeedback,
   insertArcAgent,
   rescoreArc,
+  ensNameTaken,
+  getAgentByEnsName,
 } from "@/lib/db";
+import {
+  sanitizeEnsLabel,
+  ensParent,
+  buildAgentRecords,
+  resolveAgentRecords,
+} from "@/lib/ens/records";
 import { ENGINES, resolveEngine, invokeAgentEngine } from "@/lib/agent-engine";
 import {
   postReview,
@@ -88,6 +96,7 @@ const handler = createMcpHandler(
                   agentId: agent.agentId,
                   name: agentName(agent),
                   network: agent.network,
+                  ensName: agent.ensName,
                   trustRank: agent.reputation.trustRank,
                   distrustFlag: agent.reputation.distrustFlag,
                   evidence: agent.reputation.evidence,
@@ -106,18 +115,30 @@ const handler = createMcpHandler(
 
     server.tool(
       "register_agent",
-      "Register a NEW agent on Arc ERC-8004 so it becomes discoverable and rankable through Pfand. Returns the on-chain agentId. The agent starts unrated and earns TrustRank as it's hired and reviewed.",
+      "Register a NEW agent on Arc ERC-8004 AND mint it a human-readable ENS identity (<label>.agent8004.eth) with ENSIP-25 (verifiable on-chain registration) + ENSIP-26 (agent-context, endpoints) text records. The ENS name resolves instantly (offchain CCIP-read, no gas) and is cryptographically tied to the agent's real Arc registration. Returns the on-chain agentId and the ENS name. The agent starts unrated and earns TrustRank as it's hired and reviewed.",
       {
-        name: z.string(),
+        name: z.string().describe("display name; also the basis for the ENS label"),
         description: z.string(),
         skills: z.array(z.string()).optional(),
         serviceEndpoint: z
           .string()
           .optional()
-          .describe("a callable URL for the agent, if it has one"),
-        image: z.string().optional(),
+          .describe("a callable URL for the agent (used as the web endpoint)"),
+        endpoints: z
+          .object({
+            mcp: z.string().optional().describe("Model Context Protocol URL"),
+            a2a: z.string().optional().describe("Agent-to-Agent card/URL"),
+            web: z.string().optional().describe("human-facing URL"),
+          })
+          .optional()
+          .describe("ENSIP-26 agent endpoints, published as ENS text records"),
+        wallet: z
+          .string()
+          .optional()
+          .describe("the agent's own 0x address — becomes its ENS addr record + payTo (defaults to the registrar)"),
+        image: z.string().optional().describe("avatar URL, published as the ENS avatar record"),
       },
-      async ({ name, description, skills, serviceEndpoint, image }) => {
+      async ({ name, description, skills, serviceEndpoint, endpoints, wallet, image }) => {
         if (!registerConfigured())
           return {
             content: [
@@ -129,6 +150,11 @@ const handler = createMcpHandler(
           };
         try {
           const owner = registrarAddress();
+          const payTo = (wallet && /^0x[0-9a-fA-F]{40}$/.test(wallet) ? wallet : owner) as string;
+          const eps = {
+            ...(endpoints ?? {}),
+            ...(serviceEndpoint && !endpoints?.web ? { web: serviceEndpoint } : {}),
+          };
           const card = {
             name,
             description,
@@ -137,16 +163,22 @@ const handler = createMcpHandler(
             domains: [],
             x402Support: false,
             service: serviceEndpoint
-              ? {
-                  endpoint: serviceEndpoint,
-                  method: "POST",
-                  priceUsdc: 0,
-                  payTo: owner,
-                }
+              ? { endpoint: serviceEndpoint, method: "POST", priceUsdc: 0, payTo }
               : undefined,
-            payToWallet: owner,
+            payToWallet: payTo,
+            endpoints: eps,
           };
           const { agentId, txHash, agentURI } = await registerAgent(card);
+
+          // Mint the ENS identity: readable label from the name, agentId suffix on
+          // collision. Resolution is offchain wildcard, so the name is live the
+          // instant the row is written — no Sepolia transaction.
+          const base = sanitizeEnsLabel(name);
+          const parent = ensParent();
+          let label = base;
+          if (await ensNameTaken(`${base}.${parent}`)) label = `${base}-${agentId}`;
+          const ensName = `${label}.${parent}`;
+
           await insertArcAgent({
             agentId,
             owner,
@@ -157,8 +189,21 @@ const handler = createMcpHandler(
             skills: skills ?? [],
             serviceEndpoint: serviceEndpoint ?? null,
             x402Support: false,
+            ensName,
+            payToWallet: payTo,
           });
           await rescoreArc();
+
+          const records = buildAgentRecords({
+            network: "arc",
+            agentId,
+            addr: payTo as `0x${string}`,
+            name,
+            description,
+            skills: skills ?? [],
+            image: image ?? null,
+            endpoints: eps,
+          });
           return {
             content: [
               {
@@ -167,8 +212,11 @@ const handler = createMcpHandler(
                   {
                     agentId,
                     network: "arc",
+                    ensName,
+                    addr: payTo,
                     onChainTx: txHash,
-                    note: "Registered on Arc ERC-8004 — discoverable via search_agents now (unrated until hired & reviewed).",
+                    ensRecords: records.text,
+                    note: `Registered on Arc ERC-8004 and resolvable at ${ensName} now (ENSIP-25/26 records live, offchain/no-gas). Discoverable via search_agents and resolve_agent; unrated until hired & reviewed.`,
                   },
                   null,
                   2,
@@ -186,6 +234,47 @@ const handler = createMcpHandler(
             ],
           };
         }
+      },
+    );
+
+    server.tool(
+      "resolve_agent",
+      "Resolve an agent by its ENS name (e.g. 'travel-concierge.agent8004.eth' or just 'travel-concierge') and return its ENSIP-25/26 records, address, on-chain agentId and TrustRank. This is how agents discover each other through ENS.",
+      {
+        name: z
+          .string()
+          .describe("the ENS name or bare label, e.g. 'gekko.agent8004.eth' or 'gekko'"),
+      },
+      async ({ name }) => {
+        const parent = ensParent();
+        const label = name.toLowerCase().replace(new RegExp(`\\.${parent}$`), "").split(".")[0];
+        const records = await resolveAgentRecords(label);
+        if (!records)
+          return {
+            content: [
+              { type: "text", text: `No agent resolves at ${label}.${parent}.` },
+            ],
+          };
+        const dbAgent = await getAgentByEnsName(`${label}.${parent}`);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  ensName: `${label}.${parent}`,
+                  addr: records.addr,
+                  agentId: dbAgent?.agentId ?? null,
+                  network: dbAgent?.network ?? "mainnet",
+                  trustRank: dbAgent?.trustRank ?? null,
+                  records: records.text,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
       },
     );
 

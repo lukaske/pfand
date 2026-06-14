@@ -206,6 +206,8 @@ export interface AgentCard {
   x402Support: boolean;
   service?: { endpoint: string; method: string; priceUsdc: number; payTo: string };
   payToWallet: string;
+  /** ENSIP-26 agent endpoints, surfaced as ENS text records. */
+  endpoints?: Partial<Record<"mcp" | "a2a" | "web", string>>;
 }
 
 /** Register a new agent on the Arc ERC-8004 IdentityRegistry. Returns its agentId. */

@@ -316,6 +316,8 @@ export async function insertArcAgent(a: {
   skills?: string[];
   serviceEndpoint?: string | null;
   x402Support?: boolean;
+  ensName?: string | null;
+  payToWallet?: string | null;
 }): Promise<void> {
   const c = await supa();
   const { error } = await c.from("agents").upsert(
@@ -331,8 +333,8 @@ export async function insertArcAgent(a: {
       domains: [],
       x402_support: !!a.x402Support,
       service_endpoint: a.serviceEndpoint ?? null,
-      pay_to_wallet: a.owner,
-      ens_name: null,
+      pay_to_wallet: (a.payToWallet ?? a.owner)?.toLowerCase() ?? a.owner,
+      ens_name: a.ensName ?? null,
       payable: true,
       price_usdc: null,
       reputation_count: 0,
@@ -346,6 +348,76 @@ export async function insertArcAgent(a: {
     { onConflict: "network,agent_id" },
   );
   if (error) throw new Error(`insert agent: ${error.message}`);
+}
+
+/** True if some agent already owns this full ENS name (e.g. `bob.agent8004.eth`). */
+export async function ensNameTaken(ensName: string): Promise<boolean> {
+  const c = await supa();
+  const { data } = await c
+    .from("agents")
+    .select("agent_id")
+    .eq("ens_name", ensName.toLowerCase())
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
+export interface EnsAgentRecord {
+  network: "arc" | "mainnet";
+  agentId: string;
+  addr: string | null;
+  name: string;
+  description: string;
+  skills: string[];
+  image: string | null;
+  endpoints: Partial<Record<"mcp" | "a2a" | "web", string>>;
+  trustRank: number | null;
+  distinctReviews: number;
+}
+
+/** Decode the base64 AgentCard stored in agent_uri to recover endpoint metadata. */
+function endpointsFromCard(agentUri: string | null, serviceEndpoint: string | null) {
+  const endpoints: Partial<Record<"mcp" | "a2a" | "web", string>> = {};
+  try {
+    const b64 = (agentUri ?? "").split(",")[1] ?? "";
+    if (b64) {
+      const card = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+      const e = card.endpoints ?? {};
+      if (e.mcp) endpoints.mcp = e.mcp;
+      if (e.a2a) endpoints.a2a = e.a2a;
+      if (e.web) endpoints.web = e.web;
+      if (!endpoints.web && card.service?.endpoint) endpoints.web = card.service.endpoint;
+    }
+  } catch {
+    /* not a base64 JSON card — fall back to the column */
+  }
+  if (!endpoints.web && serviceEndpoint) endpoints.web = serviceEndpoint;
+  return endpoints;
+}
+
+/** Look up the agent that owns an ENS name, shaped for ENS record building. */
+export async function getAgentByEnsName(ensName: string): Promise<EnsAgentRecord | null> {
+  const c = await supa();
+  const { data } = await c
+    .from("agents")
+    .select(
+      "network,agent_id,pay_to_wallet,owner,name,description,skills,image,agent_uri,service_endpoint,trustrank,evidence",
+    )
+    .eq("ens_name", ensName.toLowerCase())
+    .limit(1);
+  const r = (data ?? [])[0] as AgentDbRow | undefined;
+  if (!r) return null;
+  return {
+    network: (r.network as "arc" | "mainnet") ?? "arc",
+    agentId: String(r.agent_id),
+    addr: r.pay_to_wallet ?? r.owner ?? null,
+    name: r.name ?? "",
+    description: r.description ?? "",
+    skills: r.skills ?? [],
+    image: r.image ?? null,
+    endpoints: endpointsFromCard(r.agent_uri, r.service_endpoint),
+    trustRank: r.trustrank ?? null,
+    distinctReviews: r.evidence?.distinctReviews ?? 0,
+  };
 }
 
 /** Insert one Arc sign-review into the feedback table (real on-chain review). */
