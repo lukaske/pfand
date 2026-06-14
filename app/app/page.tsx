@@ -139,7 +139,7 @@ export default function Home() {
                 solved.
                 <br />
                 <span className="text-signal-ink">Trust isn&rsquo;t.</span>
-                <PfandCursor className="ml-2 h-[0.78em] w-[0.12em] align-[-0.08em]" />
+                <PfandCursor blink className="ml-2 h-[0.78em] w-[0.12em] align-[-0.08em]" />
               </h1>
               <p
                 className="mt-7 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-3 duration-700 sm:text-lg"

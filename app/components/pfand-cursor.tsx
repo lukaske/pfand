@@ -1,19 +1,24 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Pfand brand device: a blinking prompt cursor.
- * Reused wherever a "prompt" is implied — the logo wordmark, the search
- * field (trailing the query), as a loading indicator in place of a spinner,
- * and large in empty states. Respects prefers-reduced-motion via CSS.
+ * The Pfand brand device: a prompt cursor. Static (steady bar) by default;
+ * pass `blink` to enable the blinking animation — reserved for the landing
+ * hero title. Respects prefers-reduced-motion via CSS.
  */
 export function PfandCursor({
   className,
   style,
+  blink = false,
 }: {
   className?: string;
   style?: React.CSSProperties;
+  blink?: boolean;
 }) {
   return (
-    <span aria-hidden className={cn("pfand-cursor", className)} style={style} />
+    <span
+      aria-hidden
+      className={cn("pfand-cursor", blink && "pfand-cursor--blink", className)}
+      style={style}
+    />
   );
 }
