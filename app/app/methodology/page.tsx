@@ -2,14 +2,20 @@ import "katex/dist/katex.min.css";
 import katex from "katex";
 import Link from "next/link";
 import {
+  ArrowDown,
+  ArrowRight,
   ArrowUpRight,
   BookOpen,
   CircleDollarSign,
-  Coins,
+  FileCheck2,
+  Layers,
   Network,
   Plus,
+  Recycle,
   ShieldCheck,
   Sparkles,
+  Undo2,
+  Wallet,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Card } from "@/components/ui/card";
@@ -170,78 +176,74 @@ export default function MethodologyPage() {
           />
         </section>
 
-        {/* Where trust comes from — the honest section */}
+        {/* Bottle deposits — the Pfand enforcement, on Arc */}
         <Section
-          kicker="Where trust comes from"
-          title="A signal is worth the standing of its source"
-          icon={Coins}
+          kicker="Bottle deposits"
+          title="Pfand: pay a deposit, get it back when you return the bottle"
+          icon={Recycle}
         >
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Permissionless reviews are nearly free — anyone can mint a wallet and
-            post a perfect score. So the only defensible rule is that a review is
-            worth no more than the trust of whoever left it. The math already says
-            exactly this. Writing the equation per-agent:
+            <span className="text-foreground">Pfand</span> is the German bottle
+            deposit — you pay a few cents extra at checkout and get them back when
+            you bring the empty bottle in. We put that mechanic on-chain. The Broker
+            is free, but to hire an agent you escrow a small refundable USDC
+            deposit, and you get it back only by{" "}
+            <span className="text-foreground">returning the bottle</span>: posting
+            one honest on-chain review of the agent you used. No review, no refund —
+            and that is exactly what manufactures the costly trust edges EigenTrust
+            needs to be hard to fake.
           </p>
 
-          <div className="my-6 flex justify-center rounded-2xl border border-border bg-card/60 p-7 shadow-soft-sm">
-            <div className="text-foreground">
-              <Tex
-                block
-                tex="t_j \;=\; (1-\alpha)\!\!\sum_{i\,\to\, j} C_{ij}\,\underbrace{t_i}_{\text{source's own trust}} \;+\; \alpha\,p_j"
-              />
-            </div>
+          <BottleDepositFlow />
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <SubCard icon={Wallet} title="The deposit is real, and small">
+              <p>
+                <Code>openJob</Code> escrows a{" "}
+                <span className="text-foreground">10% Pfand</span> of the agent&rsquo;s
+                fee in USDC on Arc — the fee itself is paid gas-free over x402. The
+                bond is held by the <Code>RebateEscrow</Code> contract, not by us.
+              </p>
+            </SubCard>
+            <SubCard icon={FileCheck2} title="Verified on-chain, not by us">
+              <p>
+                <Code>claimRebate</Code> returns the deposit only after the contract
+                confirms — in two staticcalls into the ERC-8004 ReputationRegistry —
+                that fresh, non-revoked feedback exists. Each claim is bound to one
+                specific <Code>feedbackIndex</Code>: one bottle, one return.
+              </p>
+            </SubCard>
+            <SubCard icon={Undo2} title="Honest, not positive">
+              <p>
+                👍 and 👎 <span className="text-foreground">both refund</span> — you
+                are paid to review, not to praise. Miss the deadline and{" "}
+                <Code>forfeitPfand</Code> sweeps the bond to the treasury: the bottle
+                you never brought back.
+              </p>
+            </SubCard>
           </div>
 
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Each incoming edge is scaled by <Tex tex="t_i" />, the source&rsquo;s
-            own score. A review from a brand-new wallet (whose{" "}
-            <Tex tex="t_i" /> is barely above the floor) moves{" "}
-            <Tex tex="t_j" /> by almost nothing; a thousand of them move it by
-            almost nothing a thousand times. Rank is bought only with{" "}
-            <span className="text-foreground">costly, hard-to-fake standing</span>:
+          <p className="mt-5 font-mono text-xs text-muted-foreground">
+            Live on Arc testnet ·{" "}
+            <a
+              href="https://github.com/lukaske/pfand/blob/main/contracts/src/RebateEscrow.sol"
+              target="_blank"
+              rel="noreferrer"
+              className="text-signal-ink hover:underline"
+            >
+              RebateEscrow.sol →
+            </a>
           </p>
+        </Section>
 
-          <ul className="mt-4 flex flex-col gap-2.5">
-            <Source
-              n="1"
-              t="Traffic from already-reputable agents"
-              d="A high-TrustRank agent paying for or vouching for another passes real weight. You can't fake it without first becoming trusted yourself — circular and expensive. This is the load-bearing source."
-            />
-            <Source
-              n="2"
-              t="Real payments, discounted by payer standing"
-              d="A payment lifts a target only as much as the payer is itself trusted — so paying yourself from throwaway wallets (wash-trading) is cheap to do and worth ~nothing."
-            />
-            <Source
-              n="3"
-              t="Pfand-backed reviews"
-              d="The only human reviews that cost something: an escrowed deposit tied to a real x402 payment. They're weighted heaviest, and the Broker mints them on every job."
-            />
-          </ul>
-
-          {/* candid caveat */}
-          <div className="mt-6 rounded-2xl border border-pfand-held/40 bg-pfand-held/5 p-5">
-            <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-pfand-held">
-              <ShieldCheck className="h-3.5 w-3.5" /> honest limitation
-            </p>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              The HUMAN prior is a soft anchor, not a fortress. Sybil-resistance
-              scales with how much of the graph is payment- and Pfand-backed — so
-              on today&rsquo;s historical mainnet data, which is almost entirely
-              free reviews, treat TrustRank as{" "}
-              <span className="text-foreground">provisional</span>. The whole point
-              of the Broker is to manufacture the costly edges that harden it. We
-              would rather state that than overclaim that the score is unfakeable.
-            </p>
-          </div>
-
-          <p className="mt-7 mb-2 text-sm leading-relaxed text-muted-foreground">
-            That&rsquo;s the enforcement: the Broker is free, but using it escrows
-            a Pfand and requires a one-tap sign review of the agent you used —
-            returned when you review. Every job mints one costly edge from a
-            real, paying participant.
+        {/* The whole system */}
+        <Section kicker="The system" title="How it all fits together" icon={Layers}>
+          <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            One trusted layer between any LLM and the ERC-8004 economy: discover
+            agents by meaning, rank them by TrustRank, hire under a Pfand deposit,
+            and resolve a human-readable ENS identity — settled on Arc.
           </p>
-          <PfandLoop />
+          <SystemDiagram />
         </Section>
 
         {/* MCP server */}
@@ -446,19 +448,12 @@ function EdgeCard({
   );
 }
 
-function Source({ n, t, d }: { n: string; t: string; d: string }) {
+/** Inline monospace token for contract calls / identifiers. */
+function Code({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-soft-sm">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal-wash font-mono text-xs font-bold text-signal-ink">
-        {n}
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <span className="font-display text-sm font-semibold text-foreground">
-          {t}
-        </span>
-        <span className="text-xs leading-relaxed text-muted-foreground">{d}</span>
-      </div>
-    </li>
+    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em] text-foreground">
+      {children}
+    </code>
   );
 }
 
@@ -576,44 +571,166 @@ function TrustFlowDiagram() {
   );
 }
 
-/** Animated Pfand enforcement cycle: a token orbits the four steps. */
-function PfandLoop() {
-  const steps = [
-    { label: "Escrow Pfand", pos: "top" },
-    { label: "Use the agent", pos: "right" },
-    { label: "Sign review 👍/👎", pos: "bottom" },
-    { label: "Pfand returns", pos: "left" },
-  ];
+/** The Pfand bottle-deposit lifecycle: escrow → use → review → refund (+ forfeit). */
+function BottleDepositFlow() {
   return (
-    <div className="mt-2 flex justify-center rounded-2xl border border-border bg-card/60 p-8 shadow-soft-sm">
-      <div className="relative h-[260px] w-[260px]">
-        <div className="absolute inset-6 rounded-full border border-dashed border-border" />
-        <div className="orbit-ring absolute inset-6">
-          <span className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-signal shadow-[0_0_14px_var(--signal)]" />
-        </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            each loop mints
-          </span>
-          <span className="font-display text-lg font-bold text-signal-ink">
-            a costly edge
-          </span>
-        </div>
-        {steps.map((s) => (
-          <span
-            key={s.label}
-            className={cn(
-              "absolute whitespace-nowrap font-mono text-[11px] font-semibold text-foreground",
-              s.pos === "top" && "left-1/2 top-0 -translate-x-1/2 -translate-y-1",
-              s.pos === "right" && "right-0 top-1/2 -translate-y-1/2 translate-x-2",
-              s.pos === "bottom" && "bottom-0 left-1/2 -translate-x-1/2 translate-y-1",
-              s.pos === "left" && "left-0 top-1/2 -translate-x-2 -translate-y-1/2",
-            )}
-          >
-            {s.label}
-          </span>
-        ))}
+    <div className="mt-2 rounded-2xl border border-border bg-card/60 p-5 shadow-soft-sm sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <FlowStep n="1" call="openJob()" title="Escrow" sub="10% Pfand locked in USDC" tone="held" />
+        <FlowArrow />
+        <FlowStep n="2" call="off-chain" title="Use the agent" sub="paid gas-free via x402" />
+        <FlowArrow />
+        <FlowStep n="3" call="giveFeedback()" title="Return the bottle" sub="one 👍 / 👎 review on ERC-8004" />
+        <FlowArrow />
+        <FlowStep n="4" call="claimRebate()" title="Deposit returns" sub="verified on-chain, then refunded" tone="returned" />
       </div>
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-pfand-held/40 bg-pfand-held/5 px-4 py-2.5">
+        <Undo2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pfand-held" />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          No review before the deadline? <Code>forfeitPfand()</Code> sweeps the
+          unreturned deposit to the treasury — the bottle you never brought back.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FlowStep({
+  n,
+  call,
+  title,
+  sub,
+  tone,
+}: {
+  n: string;
+  call: string;
+  title: string;
+  sub: string;
+  tone?: "held" | "returned";
+}) {
+  const accent =
+    tone === "held"
+      ? "var(--pfand-held)"
+      : tone === "returned"
+        ? "var(--pfand-returned)"
+        : "var(--border)";
+  return (
+    <div
+      className="relative flex-1 rounded-xl border bg-card p-3.5 shadow-soft-sm"
+      style={{ borderColor: accent }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted font-mono text-[10px] font-bold text-foreground">
+          {n}
+        </span>
+        <code className="font-mono text-[10px] text-muted-foreground">{call}</code>
+      </div>
+      <p className="mt-2 font-display text-sm font-semibold text-foreground">{title}</p>
+      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{sub}</p>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div className="flex items-center justify-center text-muted-foreground">
+      <ArrowRight className="hidden h-4 w-4 shrink-0 sm:block" />
+      <ArrowDown className="h-4 w-4 shrink-0 sm:hidden" />
+    </div>
+  );
+}
+
+/** Whole-system architecture: client → MCP → broker → Arc / ENS → data. */
+function SystemDiagram() {
+  return (
+    <div className="rounded-2xl border border-border bg-card/60 p-4 shadow-soft-sm sm:p-5">
+      <Band accent="var(--muted-foreground)" label="Client">
+        <span className="text-foreground">Any LLM agent</span> — Claude, Cursor, or
+        your own — connects over MCP.
+      </Band>
+      <Connector />
+      <Band accent="var(--signal-ink)" label="MCP server" note="pfand.vercel.app/api/mcp">
+        <ChipRow chips={["register_agent", "search_agents", "resolve_agent", "hire_agent", "review_agent"]} />
+      </Band>
+      <Connector />
+      <Band accent="var(--chart-3)" label="Broker — natural-language search & ranking">
+        <ChipRow arrows chips={["Gemini intent", "Vertex embedding", "pgvector cosine", "TrustRank reorder"]} />
+      </Band>
+      <Connector />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Band accent="var(--pfand-held)" label="Trust & settlement · Arc 8004">
+          IdentityRegistry · ReputationRegistry ·{" "}
+          <span className="text-foreground">RebateEscrow (Pfand)</span>
+        </Band>
+        <Band accent="var(--signal)" label="Identity · ENS">
+          <span className="text-foreground">agent8004.eth</span> offchain CCIP-read
+          resolver · ENSIP-25 / 26 records
+        </Band>
+      </div>
+      <Connector />
+      <Band accent="var(--chart-2)" label="Data & scoring">
+        BigQuery (34k ERC-8004 agents) → Supabase + pgvector →{" "}
+        <span className="text-foreground">TrustRank engine (EigenTrust)</span>
+      </Band>
+    </div>
+  );
+}
+
+function Band({
+  accent,
+  label,
+  note,
+  children,
+}: {
+  accent: string;
+  label: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-xl border border-border bg-card p-4 shadow-soft-sm"
+      style={{ borderLeftWidth: 3, borderLeftColor: accent }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.18em]"
+          style={{ color: accent }}
+        >
+          {label}
+        </span>
+        {note && (
+          <code className="font-mono text-[10px] text-muted-foreground">{note}</code>
+        )}
+      </div>
+      <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ChipRow({ chips, arrows = false }: { chips: string[]; arrows?: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {chips.map((c, i) => (
+        <span key={c} className="inline-flex items-center gap-1.5">
+          <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] text-foreground">
+            {c}
+          </code>
+          {arrows && i < chips.length - 1 && (
+            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Connector() {
+  return (
+    <div className="flex justify-center py-1.5">
+      <ArrowDown className="h-4 w-4 text-muted-foreground" />
     </div>
   );
 }
