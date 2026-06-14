@@ -109,7 +109,71 @@ function extractText(raw: string): string {
   return out.join("").trim();
 }
 
-/** Run a one-shot query against an ADK Agent-Engine agent; returns its text reply. */
+/** Surface an ADK error event ({code, message}) from the raw stream, if any. */
+function extractError(raw: string): string | null {
+  let depth = 0,
+    start = -1,
+    inStr = false,
+    esc = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i]!;
+    if (esc) {
+      esc = false;
+      continue;
+    }
+    if (ch === "\\") {
+      esc = true;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = !inStr;
+      continue;
+    }
+    if (inStr) continue;
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try {
+          const ev = JSON.parse(raw.slice(start, i + 1));
+          if (ev?.code && typeof ev?.message === "string") return ev.message;
+        } catch {
+          /* ignore */
+        }
+        start = -1;
+      }
+    }
+  }
+  return null;
+}
+
+async function streamRaw(
+  client: REClient,
+  name: string,
+  classMethod: string,
+  input: Record<string, string>,
+): Promise<string> {
+  const stream = client.streamQueryReasoningEngine(
+    { name, classMethod, input: toStruct(input) },
+    { timeout: 280_000 },
+  );
+  let raw = "";
+  for await (const resp of stream as AsyncIterable<{ data?: Uint8Array }>) {
+    if (resp?.data) raw += Buffer.from(resp.data).toString("utf8");
+  }
+  return raw;
+}
+
+/**
+ * Run a one-shot query against an ADK Agent-Engine agent; returns its text reply.
+ *
+ * ADK agents differ: some expose `stream_query` with a plain string message
+ * (auto-sessions); others only expose `streaming_agent_run_with_events`, which
+ * wants the message as a Content mapping. We try the simple path first, then
+ * fall back, and surface any agent-side error (e.g. an unavailable model).
+ */
 export async function invokeAgentEngine(
   ref: EngineRef,
   message: string,
@@ -118,24 +182,25 @@ export async function invokeAgentEngine(
   const client = clientFor(ref.location);
   const name = `projects/${ref.project}/locations/${ref.location}/reasoningEngines/${ref.engineId}`;
 
-  const [sess] = await client.queryReasoningEngine({
-    name,
-    classMethod: "create_session",
-    input: toStruct({ user_id: userId }),
+  // 1) stream_query with a plain string message.
+  const raw1 = await streamRaw(client, name, "stream_query", {
+    user_id: userId,
+    message,
   });
-  const sid =
-    (sess as { output?: { structValue?: { fields?: { id?: { stringValue?: string } } } } })
-      ?.output?.structValue?.fields?.id?.stringValue ?? "";
+  const t1 = extractText(raw1);
+  if (t1) return t1;
 
-  const stream = client.streamQueryReasoningEngine({
-    name,
-    classMethod: "stream_query",
-    input: toStruct({ user_id: userId, session_id: sid, message }),
+  // 2) streaming_agent_run_with_events with message as a Content mapping.
+  const raw2 = await streamRaw(client, name, "streaming_agent_run_with_events", {
+    request_json: JSON.stringify({
+      user_id: userId,
+      message: { role: "user", parts: [{ text: message }] },
+    }),
   });
+  const t2 = extractText(raw2);
+  if (t2) return t2;
 
-  let raw = "";
-  for await (const resp of stream as AsyncIterable<{ data?: Uint8Array }>) {
-    if (resp?.data) raw += Buffer.from(resp.data).toString("utf8");
-  }
-  return extractText(raw) || "(the agent returned no text for this query)";
+  const err = extractError(raw2) ?? extractError(raw1);
+  if (err) throw new Error(`agent error: ${err}`);
+  return "(the agent returned no text for this query)";
 }
