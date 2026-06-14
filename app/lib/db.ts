@@ -245,10 +245,17 @@ export async function getAgents(): Promise<Agent[]> {
       client.from("agents").select(AGENT_COLS).eq("network", "arc"),
     ]);
     if (ratedRes.error) throw new Error(ratedRes.error.message);
+    // Arc agents may now also be "rated" — dedupe by (network, agent_id).
+    const seen = new Set<string>();
     const rows = [
       ...((arcRes.data ?? []) as unknown as AgentDbRow[]),
       ...((ratedRes.data ?? []) as unknown as AgentDbRow[]),
-    ];
+    ].filter((r) => {
+      const k = `${r.network}:${r.agent_id}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
     if (rows.length === 0) return getScoredAgents();
     return rows.map(rowToAgent);
   } catch (err) {
