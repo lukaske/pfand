@@ -23,6 +23,7 @@ import {
   scoreColor,
 } from "@/components/reputation-badge";
 import { TopTaskChip, EvidenceLine, TagChips } from "@/components/agent-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -57,6 +58,13 @@ const SORTS: { value: NonNullable<AgentFilters["sort"]>; label: string }[] = [
 ];
 
 const PAGE_SIZE = 15;
+
+/** Two-letter avatar fallback from an agent name. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase() || "8004";
+}
 
 export default function ExplorePage() {
   const [filters, setFilters] = useState<AgentFilters>({
@@ -273,8 +281,17 @@ export default function ExplorePage() {
                         <TableCell>
                           <Link
                             href={`/agent/${a.agentId}`}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2.5"
                           >
+                            <Avatar className="h-7 w-7 shrink-0 rounded-lg border border-border">
+                              <AvatarImage
+                                src={a.image ?? undefined}
+                                alt={a.name}
+                              />
+                              <AvatarFallback className="rounded-lg bg-muted font-mono text-[9px] text-muted-foreground">
+                                {initials(a.name)}
+                              </AvatarFallback>
+                            </Avatar>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 font-display text-sm font-semibold text-foreground">
                                 {a.name}
