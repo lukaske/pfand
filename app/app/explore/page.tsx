@@ -1,14 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Filter, TrendingUp, Zap } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { StatTile } from "@/components/stat-tile";
 import { Heatmap } from "@/components/heatmap";
 import { NetworkBadge } from "@/components/network-badge";
 import {
   ReputationBadge,
+  fmtScore,
   headlineScore,
   scoreColor,
 } from "@/components/reputation-badge";
@@ -46,12 +56,16 @@ const SORTS: { value: NonNullable<AgentFilters["sort"]>; label: string }[] = [
   { value: "recent", label: "Newest" },
 ];
 
+const PAGE_SIZE = 15;
+
 export default function ExplorePage() {
   const [filters, setFilters] = useState<AgentFilters>({
     network: "all",
     skill: "all",
     sort: "score",
   });
+  const [dir, setDir] = useState<"desc" | "asc">("desc");
+  const [page, setPage] = useState(0);
 
   const stats = useStats();
   const agents = useAgents(filters);
@@ -59,7 +73,25 @@ export default function ExplorePage() {
 
   function patch(p: Partial<AgentFilters>) {
     setFilters((f) => ({ ...f, ...p }));
+    setPage(0);
   }
+  function toggleDir() {
+    setDir((d) => (d === "desc" ? "asc" : "desc"));
+    setPage(0);
+  }
+
+  // The API returns the active sort key descending; reverse it for ascending.
+  const sorted = useMemo(() => {
+    const list = agents.data?.agents ?? [];
+    return dir === "asc" ? [...list].reverse() : list;
+  }, [agents.data, dir]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = sorted.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   return (
     <>
@@ -174,7 +206,7 @@ export default function ExplorePage() {
                 x402
               </button>
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
                 <Select
                   value={filters.sort}
                   onValueChange={(v) => patch({ sort: v as AgentFilters["sort"] })}
@@ -190,11 +222,25 @@ export default function ExplorePage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <button
+                  type="button"
+                  onClick={toggleDir}
+                  title={dir === "desc" ? "High → low" : "Low → high"}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border px-3 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {dir === "desc" ? (
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  )}
+                  {dir === "desc" ? "High" : "Low"}
+                </button>
               </div>
             </div>
 
+            <div className="max-h-[600px] overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-mono text-[10px] uppercase tracking-wider">
                     Agent
@@ -222,7 +268,7 @@ export default function ExplorePage() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : agents.data.agents.map((a) => (
+                  : paged.map((a) => (
                       <TableRow key={a.agentId} className="group">
                         <TableCell>
                           <Link
@@ -273,6 +319,38 @@ export default function ExplorePage() {
                     ))}
               </TableBody>
             </Table>
+            </div>
+            {/* Pagination */}
+            {agents.data && sorted.length > 0 && (
+              <div className="flex items-center justify-between border-t border-border px-4 py-3 font-mono text-xs text-muted-foreground">
+                <span className="tabular-nums">
+                  {safePage * PAGE_SIZE + 1}–
+                  {Math.min((safePage + 1) * PAGE_SIZE, sorted.length)} of{" "}
+                  {sorted.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={safePage === 0}
+                    className="inline-flex h-7 items-center gap-1 rounded-lg border border-border px-2 transition-colors hover:text-foreground disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                  </button>
+                  <span className="tabular-nums">
+                    {safePage + 1} / {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                    disabled={safePage >= pageCount - 1}
+                    className="inline-flex h-7 items-center gap-1 rounded-lg border border-border px-2 transition-colors hover:text-foreground disabled:opacity-40"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Side rail: heatmap + trend */}
@@ -332,11 +410,11 @@ function ReputationTrend() {
                   </div>
                   <span
                     className={cn(
-                      "w-8 shrink-0 text-right font-mono text-xs tabular-nums",
+                      "w-12 shrink-0 text-right font-mono text-xs tabular-nums",
                       scoreColor(s),
                     )}
                   >
-                    {s}
+                    {fmtScore(s)}
                   </span>
                 </Link>
               );

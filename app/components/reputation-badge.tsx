@@ -27,6 +27,11 @@ export function headlineScore(reputation: ReputationSummary): number | null {
   return reputation.trustRank ?? null;
 }
 
+/** Render a 0–100 score with at most 2 decimals (no trailing zeros). */
+export function fmtScore(s: number): string {
+  return Number.isInteger(s) ? String(s) : s.toFixed(2);
+}
+
 export function ReputationBadge({
   reputation,
   className,
@@ -61,7 +66,7 @@ export function ReputationBadge({
       ) : (
         <span className="size-1.5 rounded-full bg-current" />
       )}
-      {rated ? s : "unrated"}
+      {rated ? fmtScore(s) : "unrated"}
       {showLabel && rated && (
         <span className="text-muted-foreground">/ {bandLabel(s)}</span>
       )}
