@@ -13,7 +13,8 @@ import {
   openEscrowJob,
   claimRebate,
   registerAgent,
-  brokerAddress,
+  registrarAddress,
+  registerConfigured,
   onchainConfigured,
   type ReviewState,
 } from "@/lib/onchain";
@@ -117,17 +118,17 @@ const handler = createMcpHandler(
         image: z.string().optional(),
       },
       async ({ name, description, skills, serviceEndpoint, image }) => {
-        if (!onchainConfigured())
+        if (!registerConfigured())
           return {
             content: [
               {
                 type: "text",
-                text: "On-chain registration not configured (missing Arc signer).",
+                text: "On-chain registration not configured (missing Arc registrar key).",
               },
             ],
           };
         try {
-          const owner = brokerAddress();
+          const owner = registrarAddress();
           const card = {
             name,
             description,

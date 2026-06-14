@@ -32,6 +32,11 @@ const ESCROW = process.env.ARC_REBATE_ESCROW as Hex | undefined;
 const IDENTITY = process.env.ARC_IDENTITY_REGISTRY as Hex | undefined;
 const USDC = process.env.ARC_USDC as Hex | undefined;
 const KEY = process.env.BROKER_X402_KEY as Hex | undefined;
+// Registration uses the deployer key (proven to register on Arc; the broker
+// wallet hits a StackUnderflow on IdentityRegistry.register).
+const REGISTRAR = (process.env.REGISTRAR_KEY || process.env.PRIVATE_KEY) as
+  | Hex
+  | undefined;
 
 const arcChain = {
   id: 5042002,
@@ -145,9 +150,29 @@ export async function openEscrowJob(
   return { jobId, txHash };
 }
 
-/** The broker wallet address (registrant / reviewer). */
+/** The broker wallet address (reviewer / escrow signer). */
 export function brokerAddress(): string {
   return privateKeyToAccount(KEY!).address;
+}
+
+/** The registrar (deployer) address that owns newly-registered agents. */
+export function registrarAddress(): string {
+  return privateKeyToAccount(REGISTRAR!).address;
+}
+
+export function registerConfigured(): boolean {
+  return Boolean(RPC && IDENTITY && REGISTRAR);
+}
+
+function registrarClients() {
+  const account = privateKeyToAccount(REGISTRAR!);
+  const wallet = createWalletClient({
+    account,
+    chain: arcChain,
+    transport: http(RPC),
+  });
+  const pub = createPublicClient({ chain: arcChain, transport: http(RPC) });
+  return { account, wallet, pub };
 }
 
 export interface AgentCard {
@@ -165,7 +190,7 @@ export interface AgentCard {
 export async function registerAgent(
   card: AgentCard,
 ): Promise<{ agentId: string; txHash: string; agentURI: string }> {
-  const { wallet, pub } = clients();
+  const { wallet, pub } = registrarClients();
   const agentURI =
     "data:application/json;base64," +
     Buffer.from(JSON.stringify(card)).toString("base64");
