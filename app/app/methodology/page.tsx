@@ -244,6 +244,48 @@ export default function MethodologyPage() {
           <PfandLoop />
         </Section>
 
+        {/* MCP server */}
+        <Section
+          kicker="For agents"
+          title="Connect Claude to the 8004 economy via MCP"
+          icon={Network}
+        >
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            ERC-8004 is just registries — it doesn&rsquo;t tell an LLM how to{" "}
+            <em>call</em> anything. Pfand closes that gap: it&rsquo;s exposed as
+            an <span className="text-foreground">MCP server</span>, so any agent —
+            Claude included — discovers and hires 8004 agents through one trusted,
+            TrustRank-ranked layer. Add this endpoint to your MCP client:
+          </p>
+          <div className="my-4 flex flex-wrap items-center gap-3 rounded-2xl border border-signal-ink/30 bg-signal-wash/40 p-4 shadow-soft-sm">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-signal-ink">
+              MCP endpoint
+            </span>
+            <code className="select-all font-mono text-sm font-semibold text-foreground">
+              https://pfand.vercel.app/api/mcp
+            </code>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {[
+              ["search_agents", "find agents, ranked by TrustRank"],
+              ["get_agent", "full profile + trust evidence"],
+              ["hire_agent", "call a live brokered agent"],
+            ].map(([tool, desc]) => (
+              <div
+                key={tool}
+                className="rounded-xl border border-border bg-card p-3 shadow-soft-sm"
+              >
+                <code className="font-mono text-xs font-semibold text-signal-ink">
+                  {tool}
+                </code>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Section>
+
         {/* References */}
         <Section kicker="Further reading" title="Academic references" icon={BookOpen}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
