@@ -17,6 +17,7 @@
  *   getUpdatedAt() -> string | null    (trustrank_updated_at, for "scores updated …")
  */
 import {
+  scoreAgents,
   type Agent,
   type FeedbackEntry,
   type IndexStats,
@@ -25,6 +26,7 @@ import {
   type TaskScore,
   type Payment,
   type Evidence,
+  type TrustScore,
 } from "@pfand/shared";
 import { getScoredData, getScoredAgents, allFeedback } from "@/lib/scored";
 import {
@@ -292,6 +294,103 @@ export async function getAllPayments(): Promise<Payment[]> {
     console.error("[db] getAllPayments fell back to empty:", err);
     return [];
   }
+}
+
+/* ----------------------- Pfand broker loop writes ----------------------- */
+
+/** Insert one Arc sign-review into the feedback table (real on-chain review). */
+export async function insertArcFeedback(p: {
+  agentId: string;
+  client: string;
+  value: number;
+  tag1: string;
+  tag2: string;
+  txHash: string;
+}): Promise<number> {
+  const c = await supa();
+  const client = p.client.toLowerCase();
+  const { data } = await c
+    .from("feedback")
+    .select("feedback_index")
+    .eq("network", "arc")
+    .eq("agent_id", p.agentId)
+    .eq("client", client)
+    .order("feedback_index", { ascending: false })
+    .limit(1);
+  const next = Number((data ?? [])[0]?.feedback_index ?? 0) + 1;
+  const { error } = await c.from("feedback").insert({
+    network: "arc",
+    agent_id: p.agentId,
+    client,
+    feedback_index: next,
+    value: p.value,
+    value_decimals: 0,
+    score: p.value,
+    tag1: p.tag1,
+    tag2: p.tag2,
+    feedback_uri: "",
+    is_revoked: false,
+    tx_hash: p.txHash,
+    block_number: null,
+    timestamp: new Date().toISOString(),
+  });
+  if (error) throw new Error(`insert feedback: ${error.message}`);
+  return next;
+}
+
+/**
+ * Re-run the TrustRank engine over the scorable corpus (rated agents + all Arc
+ * agents) and write the fresh scores for the Arc agents. Cheap — only loads the
+ * ~1.6k agents that have any history, not the full 34k. Used after a review lands
+ * so the agent's TrustRank updates immediately.
+ */
+export async function rescoreArc(): Promise<Map<string, TrustScore>> {
+  const c = await supa();
+  const PAGE = 1000;
+  const rated: AgentDbRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await c
+      .from("agents")
+      .select(AGENT_COLS)
+      .not("trustrank", "is", null)
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as unknown as AgentDbRow[];
+    rated.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  const arcRes = await c.from("agents").select(AGENT_COLS).eq("network", "arc");
+  const arcRows = (arcRes.data ?? []) as unknown as AgentDbRow[];
+
+  const agents = [...arcRows, ...rated].map(rowToAgent);
+  const feedback = (await fetchAllFeedback()).map(rowToFeedback);
+  const payments = await getAllPayments();
+  const scores = scoreAgents(feedback, agents, {
+    nowMs: Date.now(),
+    halfLifeDays: 180,
+    pfandBoost: 3,
+    payments,
+  });
+
+  const updatedAt = new Date().toISOString();
+  for (const r of arcRows) {
+    const s = scores.get(`arc:${r.agent_id}`);
+    await c
+      .from("agents")
+      .update({
+        trustrank: s?.trustRank ?? null,
+        trustrank_raw: s?.trustRankRaw ?? null,
+        evidence: s?.evidence ?? null,
+        distrust_flag: s?.distrustFlag ?? false,
+        tags: s?.tags ?? [],
+        distinct_clients: s?.evidence.distinctReviews ?? 0,
+        reputation_count: s?.evidence.distinctReviews ?? 0,
+        trustrank_updated_at: updatedAt,
+      })
+      .eq("network", "arc")
+      .eq("agent_id", r.agent_id);
+  }
+  return scores;
 }
 
 /** A single agent + its feedback, or null if not found. */

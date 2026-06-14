@@ -1,8 +1,15 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { broker } from "@/lib/broker";
-import { getAgent } from "@/lib/db";
-import { ENGINES, invokeAgentEngine } from "@/lib/agent-engine";
+import { getAgent, insertArcFeedback, rescoreArc } from "@/lib/db";
+import { ENGINES, resolveEngine, invokeAgentEngine } from "@/lib/agent-engine";
+import {
+  postReview,
+  openEscrowJob,
+  claimRebate,
+  onchainConfigured,
+  type ReviewState,
+} from "@/lib/onchain";
 import { agentName } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -91,7 +98,7 @@ const handler = createMcpHandler(
 
     server.tool(
       "hire_agent",
-      "Hire one of the live Pfand-brokered agents to do a task. Free to call; the Broker is the only x402-charged surface. Returns the agent's answer.",
+      "Hire a live Pfand-brokered agent. Free to call. Opens a Pfand escrow job on Arc and returns a jobId — you MUST then call review_agent with that jobId to release the deposit and mint the agent's trust edge.",
       {
         agent: z
           .enum(Object.keys(ENGINES) as [string, ...string[]])
@@ -104,13 +111,132 @@ const handler = createMcpHandler(
           return {
             content: [{ type: "text", text: `Unknown agent '${agent}'.` }],
           };
+        let answer: string;
         try {
-          const text = await invokeAgentEngine(ref, message);
-          return { content: [{ type: "text", text }] };
+          answer = await invokeAgentEngine(ref, message);
+        } catch (err) {
+          answer = `Agent error: ${(err as Error).message}`;
+        }
+        // Open the Pfand escrow job (best-effort; fee 0 → no USDC moved).
+        let jobId: string | null = null;
+        let escrowNote = "escrow unavailable";
+        if (onchainConfigured()) {
+          try {
+            const job = await openEscrowJob(ref.agentId, ref.serviceWallet, 0);
+            jobId = job.jobId;
+            escrowNote = `Pfand job #${jobId} opened on Arc (tx ${job.txHash.slice(0, 10)}…)`;
+          } catch (err) {
+            escrowNote = `escrow failed: ${(err as Error).message}`;
+          }
+        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  agent: ref.slug,
+                  agentId: ref.agentId,
+                  answer,
+                  jobId,
+                  escrow: escrowNote,
+                  next: `Call review_agent({ agent: "${ref.slug}", state: "good"|"neutral"|"bad", jobId: ${jobId ? `"${jobId}"` : "null"} }) to release the deposit and record your review on-chain.`,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      },
+    );
+
+    server.tool(
+      "review_agent",
+      "Leave the on-chain ERC-8004 sign review for an agent you hired (good = 👍, neutral = 😐, bad = 👎). This mints the trust edge, releases your Pfand deposit, and updates the agent's TrustRank. Required to close the loop.",
+      {
+        agent: z
+          .enum(Object.keys(ENGINES) as [string, ...string[]])
+          .describe("the agent slug you hired"),
+        state: z
+          .enum(["good", "neutral", "bad"])
+          .describe("your verdict on the work"),
+        jobId: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("the jobId returned by hire_agent (to release the Pfand)"),
+      },
+      async ({ agent, state, jobId }) => {
+        const ref = resolveEngine(agent);
+        if (!ref)
+          return {
+            content: [{ type: "text", text: `Unknown agent '${agent}'.` }],
+          };
+        if (!onchainConfigured())
+          return {
+            content: [
+              {
+                type: "text",
+                text: "On-chain reviews are not configured (missing Arc signer).",
+              },
+            ],
+          };
+        try {
+          // 1. Post the sign review on-chain (Arc ReputationRegistry).
+          const review = await postReview(
+            ref.agentId,
+            state as ReviewState,
+            ref.slug,
+            `https://pfand.vercel.app/api/invoke/${ref.slug}`,
+          );
+          // 2. Mirror it into the index so TrustRank can move.
+          await insertArcFeedback({
+            agentId: ref.agentId,
+            client: review.client,
+            value: review.value,
+            tag1: review.tag1,
+            tag2: review.tag2,
+            txHash: review.txHash,
+          });
+          // 3. Release the Pfand deposit if a job is open (best-effort).
+          let claimNote = "no job to claim";
+          if (jobId) {
+            try {
+              const claimTx = await claimRebate(jobId);
+              claimNote = `Pfand released (tx ${claimTx.slice(0, 10)}…)`;
+            } catch (err) {
+              claimNote = `claim failed: ${(err as Error).message}`;
+            }
+          }
+          // 4. Re-score so the agent's TrustRank updates immediately.
+          const scores = await rescoreArc();
+          const newRank = scores.get(`arc:${ref.agentId}`)?.trustRank ?? null;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  {
+                    agent: ref.slug,
+                    agentId: ref.agentId,
+                    review: state,
+                    onChainTx: review.txHash,
+                    pfand: claimNote,
+                    newTrustRank: newRank,
+                    note: "Review recorded on-chain and TrustRank updated. The agent is now discoverable / climbs in search.",
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
         } catch (err) {
           return {
             content: [
-              { type: "text", text: `Agent error: ${(err as Error).message}` },
+              { type: "text", text: `Review failed: ${(err as Error).message}` },
             ],
           };
         }

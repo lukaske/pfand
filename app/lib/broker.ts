@@ -135,10 +135,14 @@ export async function broker(query: string): Promise<SearchResponse> {
   // 2. Hard filters + base ranking over the candidate corpus.
   const ranked = rankAgents(candidates, filters);
 
-  // 3. Re-order by per-task TrustRank (stable on ties via base semantic order).
-  const reordered = [...ranked].sort(
-    (a, b) => orderKey(b, detectedTask) - orderKey(a, detectedTask),
-  );
+  // 3. Re-order: RELEVANCE first, then TrustRank. A relevant agent must beat a
+  //    more-trusted but irrelevant one — this is discovery, not a pure trust
+  //    leaderboard. Within a relevance bucket, the more-trusted agent wins.
+  const reordered = [...ranked].sort((a, b) => {
+    const rel = (b.semanticScore ?? 0) - (a.semanticScore ?? 0);
+    if (Math.abs(rel) > 0.02) return rel;
+    return orderKey(b, detectedTask) - orderKey(a, detectedTask);
+  });
 
   // Annotate every result with trust/task fields + a TrustRank-aware reason.
   const results: AgentSearchResult[] = reordered.map((r) => {

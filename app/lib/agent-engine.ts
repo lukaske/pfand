@@ -22,9 +22,15 @@ export interface EngineRef {
   project: string;
   location: string;
   engineId: string;
+  /** ERC-8004 agentId on Arc (for reviews / escrow). */
+  agentId: string;
+  /** Arc wallet that "performs" the work (the agent's payTo). */
+  serviceWallet: string;
 }
 
-/** Registered Agent-Engine agents reachable through the Broker. */
+const DEPLOYER = "0x4AEDE02c0BB911424420C50A03e26092179252aC";
+
+/** Registered Agent-Engine agents reachable through the Broker (Arc 8004). */
 export const ENGINES: Record<string, EngineRef> = {
   "deep-search": {
     slug: "deep-search",
@@ -32,6 +38,8 @@ export const ENGINES: Record<string, EngineRef> = {
     project: "pfand-ethglobal",
     location: "us-central1",
     engineId: "6177151432601370624",
+    agentId: "19",
+    serviceWallet: DEPLOYER,
   },
   "travel-concierge": {
     slug: "travel-concierge",
@@ -39,8 +47,18 @@ export const ENGINES: Record<string, EngineRef> = {
     project: "pfand-ethglobal",
     location: "us-east1",
     engineId: "8224030316415680512",
+    agentId: "20",
+    serviceWallet: DEPLOYER,
   },
 };
+
+/** Resolve an engine by slug or by its on-chain Arc agentId. */
+export function resolveEngine(idOrSlug: string): EngineRef | undefined {
+  return (
+    ENGINES[idOrSlug] ??
+    Object.values(ENGINES).find((e) => e.agentId === idOrSlug)
+  );
+}
 
 const _clients = new Map<string, REClient>();
 function clientFor(location: string): REClient {
