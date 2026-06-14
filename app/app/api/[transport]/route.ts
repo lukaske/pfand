@@ -43,7 +43,7 @@ const handler = createMcpHandler(
           topTask: a.reputation.topTask,
           evidence: a.reputation.evidence,
           ensName: a.ensName,
-          hireable: Object.keys(ENGINES).includes(a.agentId),
+          hireable: !!resolveEngine(a.agentId),
         }));
         return {
           content: [
