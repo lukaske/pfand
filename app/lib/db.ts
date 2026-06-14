@@ -305,6 +305,49 @@ export async function getAllPayments(): Promise<Payment[]> {
 
 /* ----------------------- Pfand broker loop writes ----------------------- */
 
+/** Insert a freshly-registered Arc agent so it's discoverable in the app. */
+export async function insertArcAgent(a: {
+  agentId: string;
+  owner: string;
+  agentURI: string;
+  name: string;
+  description: string;
+  image?: string | null;
+  skills?: string[];
+  serviceEndpoint?: string | null;
+  x402Support?: boolean;
+}): Promise<void> {
+  const c = await supa();
+  const { error } = await c.from("agents").upsert(
+    {
+      network: "arc",
+      agent_id: a.agentId,
+      owner: a.owner,
+      agent_uri: a.agentURI,
+      name: a.name,
+      description: a.description,
+      image: a.image ?? null,
+      skills: a.skills ?? [],
+      domains: [],
+      x402_support: !!a.x402Support,
+      service_endpoint: a.serviceEndpoint ?? null,
+      pay_to_wallet: a.owner,
+      ens_name: null,
+      payable: true,
+      price_usdc: null,
+      reputation_count: 0,
+      scores_by_task: [],
+      distinct_clients: 0,
+      evidence: { distinctReviews: 0, paymentCount: 0, paymentVolumeUsdc: 0 },
+      distrust_flag: false,
+      tags: [],
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: "network,agent_id" },
+  );
+  if (error) throw new Error(`insert agent: ${error.message}`);
+}
+
 /** Insert one Arc sign-review into the feedback table (real on-chain review). */
 export async function insertArcFeedback(p: {
   agentId: string;

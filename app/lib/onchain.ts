@@ -19,11 +19,17 @@ import {
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { reputationRegistryAbi, rebateEscrowAbi, erc20Abi } from "@pfand/shared";
+import {
+  reputationRegistryAbi,
+  rebateEscrowAbi,
+  erc20Abi,
+  identityRegistryAbi,
+} from "@pfand/shared";
 
 const RPC = process.env.ARC_RPC_URL;
 const REP = process.env.ARC_REPUTATION_REGISTRY as Hex | undefined;
 const ESCROW = process.env.ARC_REBATE_ESCROW as Hex | undefined;
+const IDENTITY = process.env.ARC_IDENTITY_REGISTRY as Hex | undefined;
 const USDC = process.env.ARC_USDC as Hex | undefined;
 const KEY = process.env.BROKER_X402_KEY as Hex | undefined;
 
@@ -137,6 +143,56 @@ export async function openEscrowJob(
     }
   }
   return { jobId, txHash };
+}
+
+/** The broker wallet address (registrant / reviewer). */
+export function brokerAddress(): string {
+  return privateKeyToAccount(KEY!).address;
+}
+
+export interface AgentCard {
+  name: string;
+  description: string;
+  image: string | null;
+  skills: string[];
+  domains: string[];
+  x402Support: boolean;
+  service?: { endpoint: string; method: string; priceUsdc: number; payTo: string };
+  payToWallet: string;
+}
+
+/** Register a new agent on the Arc ERC-8004 IdentityRegistry. Returns its agentId. */
+export async function registerAgent(
+  card: AgentCard,
+): Promise<{ agentId: string; txHash: string; agentURI: string }> {
+  const { wallet, pub } = clients();
+  const agentURI =
+    "data:application/json;base64," +
+    Buffer.from(JSON.stringify(card)).toString("base64");
+  const txHash = await wallet.writeContract({
+    address: IDENTITY!,
+    abi: identityRegistryAbi,
+    functionName: "register",
+    args: [agentURI],
+  });
+  const rcpt = await pub.waitForTransactionReceipt({ hash: txHash });
+  let agentId = "";
+  for (const log of rcpt.logs) {
+    try {
+      const d = decodeEventLog({
+        abi: identityRegistryAbi,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (d.eventName === "Registered") {
+        agentId = (d.args as { agentId: bigint }).agentId.toString();
+        break;
+      }
+    } catch {
+      /* not our event */
+    }
+  }
+  return { agentId, txHash, agentURI };
 }
 
 /** Claim the Pfand back for a job (requires fresh feedback to exist). */

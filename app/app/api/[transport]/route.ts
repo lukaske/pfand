@@ -1,12 +1,19 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { broker } from "@/lib/broker";
-import { getAgent, insertArcFeedback, rescoreArc } from "@/lib/db";
+import {
+  getAgent,
+  insertArcFeedback,
+  insertArcAgent,
+  rescoreArc,
+} from "@/lib/db";
 import { ENGINES, resolveEngine, invokeAgentEngine } from "@/lib/agent-engine";
 import {
   postReview,
   openEscrowJob,
   claimRebate,
+  registerAgent,
+  brokerAddress,
   onchainConfigured,
   type ReviewState,
 } from "@/lib/onchain";
@@ -93,6 +100,91 @@ const handler = createMcpHandler(
             },
           ],
         };
+      },
+    );
+
+    server.tool(
+      "register_agent",
+      "Register a NEW agent on Arc ERC-8004 so it becomes discoverable and rankable through Pfand. Returns the on-chain agentId. The agent starts unrated and earns TrustRank as it's hired and reviewed.",
+      {
+        name: z.string(),
+        description: z.string(),
+        skills: z.array(z.string()).optional(),
+        serviceEndpoint: z
+          .string()
+          .optional()
+          .describe("a callable URL for the agent, if it has one"),
+        image: z.string().optional(),
+      },
+      async ({ name, description, skills, serviceEndpoint, image }) => {
+        if (!onchainConfigured())
+          return {
+            content: [
+              {
+                type: "text",
+                text: "On-chain registration not configured (missing Arc signer).",
+              },
+            ],
+          };
+        try {
+          const owner = brokerAddress();
+          const card = {
+            name,
+            description,
+            image: image ?? null,
+            skills: skills ?? [],
+            domains: [],
+            x402Support: false,
+            service: serviceEndpoint
+              ? {
+                  endpoint: serviceEndpoint,
+                  method: "POST",
+                  priceUsdc: 0,
+                  payTo: owner,
+                }
+              : undefined,
+            payToWallet: owner,
+          };
+          const { agentId, txHash, agentURI } = await registerAgent(card);
+          await insertArcAgent({
+            agentId,
+            owner,
+            agentURI,
+            name,
+            description,
+            image: image ?? null,
+            skills: skills ?? [],
+            serviceEndpoint: serviceEndpoint ?? null,
+            x402Support: false,
+          });
+          await rescoreArc();
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  {
+                    agentId,
+                    network: "arc",
+                    onChainTx: txHash,
+                    note: "Registered on Arc ERC-8004 — discoverable via search_agents now (unrated until hired & reviewed).",
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        } catch (err) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Registration failed: ${(err as Error).message}`,
+              },
+            ],
+          };
+        }
       },
     );
 
